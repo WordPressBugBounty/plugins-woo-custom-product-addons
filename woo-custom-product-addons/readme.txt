@@ -5,7 +5,7 @@ Requires at least: 3.9
 Tested up to: 6.6
 Requires PHP: 7.2
 License: GPLv2 or later
-Stable tag: 3.0.9
+Stable tag: 3.0.10
 
 
 WooCommerce Product Addons Add custom fields to your WooCommerce product page. With an easy-to-use Custom Form Builder.
@@ -172,6 +172,8 @@ Inorder to show the Woocommerce product options plugin fields, it is mandatory t
 That means, it must have price set and must be in stock
 
 == Changelog ==
+= 3.0.10 =
+* Woocommerce 9.3 Support
 = 3.0.9 =
 * Woocommerce 9.1 Support
 * Wordpress 6.6 Support

@@ -322,11 +322,22 @@ function sanitizeFields(&$formBuilderData, $allowed_html)
 function processDateValueForCl($val)
 {
     $res = [];
-    $d = getUNIDate($val);
-    if ($d) {
-        $res[] = $d->getTimestamp();
+    if (is_array($val)) {
+        foreach ($val as $dt) {
+            $d = getUNIDate($dt);
+            if ($d) {
+                $res[] = $d->getTimestamp();
+            } else {
+                $res[] = $dt;
+            }
+        }
     } else {
-        $res[] = $val;
+        $d = getUNIDate($val);
+        if ($d) {
+            $res[] = $d->getTimestamp();
+        } else {
+            $res[] = $val;
+        }
     }
     return $res;
 }
