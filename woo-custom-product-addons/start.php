@@ -1,7 +1,7 @@
 <?php
 /*
  * Plugin Name: WooCommerce Custom Product Addons Free
- * Version: 3.0.10
+ * Version: 3.0.11
  * Plugin URI: https://acowebs.com
  * Description: WooCommerce Product add-on plugin. Add custom fields to your WooCommerce product page. With an easy-to-use Custom Form Builder, now you can add extra product options quickly.
  * Author URI: https://acowebs.com
@@ -27,7 +27,7 @@ if (!is_wcpa_pro_active()) {
     }
 
 
-    define('WCPA_VERSION', '3.0.10');
+    define('WCPA_VERSION', '3.0.11');
     define('WCPA_PLUGIN_NAME', 'Woocommerce Custom Product Addons');
 
     define('WCPA_TOKEN', 'wcpa');
