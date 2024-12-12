@@ -29,8 +29,7 @@ class Front
         add_filter('post_class', array($this, 'product_class'), 10, 3);
 
 
-        add_filter('woocommerce_paypal_payments_product_supports_payment_request_button',
-            array($this, 'show_checkout_button'), 10, 2);
+        // add_filter('woocommerce_paypal_payments_product_supports_payment_request_button', array($this, 'show_checkout_button'), 10, 2);
 
         add_filter('wc_stripe_hide_payment_request_on_product_page', array($this, 'remove_checkout_button'), 10, 2);
 
