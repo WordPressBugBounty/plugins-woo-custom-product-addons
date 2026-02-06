@@ -92,7 +92,7 @@ class BackendApi
         //Products Listing
         $this->add_route('/list/products/(?P<form_id>[0-9]+)', 'products_listing', 'POST');
         //Product Searching
-        $this->add_route('/search/products/(?P<q>[a-zA-Z0-9-]+)', 'products_searching');
+        $this->add_route('/search/products/(?P<q>[a-zA-Z0-9\-%20]+)', 'products_searching');
 
 
         //Product Assigning to Form

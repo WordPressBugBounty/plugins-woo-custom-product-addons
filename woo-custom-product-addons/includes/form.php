@@ -1076,6 +1076,7 @@ class Form
     public function products_searching($search)
     {
         $response   = ['status' => true, 'search' => $search, 'searchOptions' => ''];
+        $search = urldecode($search);
         $args       = array(
             'post_type' => 'product',
             's' => $search,

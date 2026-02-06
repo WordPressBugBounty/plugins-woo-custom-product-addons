@@ -2,10 +2,10 @@
 Contributors: acowebs
 Tags: WooCommerce Product Addons, WooCommerce product options, WooCommerce custom fields, WooCommerce product fields, WooCommerce custom price field
 Requires at least: 3.9
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.2
 License: GPLv2 or later
-Stable tag: 3.0.17
+Stable tag: 3.1.0
 
 
 WooCommerce Product Addons Add custom fields to your WooCommerce product page. With an easy-to-use Custom Form Builder.
@@ -21,7 +21,7 @@ You can easily personalize the WooCommerce product ordering page (with custom pr
 For instance, if you need to collect more information from users (or customers want personalized products ) on your WooCommerce product pages, like customer notes, collect numbers, dates, color themes, engrave texts for design services from your WooCommerce product page, etc, all you need is this free plugin! (You can enable a lot more features like pricing options, upload field, conditional logic, image selector & color group, add logo, images, etc – but these are available only in the  [premium version](https://acowebs.com/woo-custom-product-addons/?ref=wcpa-readme)  now.)
 
 = Check out our video demo on how product addons for WooCommerce works: =
-[youtube http://www.youtube.com/watch?v=KP4B6APZUqE&rel=0]
+[youtube https://www.youtube.com/watch?v=ENnrHs_JmVY]
 
 ==BASIC FEATURES==
 
@@ -179,6 +179,14 @@ Yes, the Woocommerce custom fields allow file uploads,enabling customers to uplo
 To calculate the price with the Woocommerce product addons follow these simple steps in the [video](https://youtu.be/a1Ld-PbULNk?feature=shared) ( only available in pro version. get[WooCommerce custom product addons pro](https://acowebs.com/woo-custom-product-addons/) )
 
 == Changelog ==
+= 3.1.0 =
+* Woocommerce 10.4 Support
+* Added: Separator Field
+* Added: Min/Max date controls with date field
+= 3.0.19 =
+* Wordpress 6.9 Support
+= 3.0.18 =
+* Woocommerce 10.3 Support
 = 3.0.17 =
 * Woocommerce 10.1 Support
 = 3.0.16 =
