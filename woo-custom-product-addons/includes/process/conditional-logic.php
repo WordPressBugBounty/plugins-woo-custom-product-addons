@@ -81,12 +81,26 @@ class CLogic
                     } else {
                         $eval_str .= ' false ';
                     }
+                    if ($rule->operator !== false) {
+                        if (preg_match('/(and|or|&&|\|\|)/i', $rule->operator, $matches)) {
+                            $rule->operator = $matches[0];
+                        } else {
+                            $rule->operator = '';
+                        }
+                    }
                     $eval_str .= ') ' . (($rule->operator !== false) ? $rule->operator : '') . ' ';
                 }
 
                 if (count($relation->rules) > 0) {
                     preg_match_all('/\(.*\)/', $eval_str, $match);
                     $eval_str = $match[0][0] . ' ';
+                }
+                if ($relation->operator !== false) {
+                    if (preg_match('/(and|or|&&|\|\|)/i', $relation->operator, $matches)) {
+                        $relation->operator = $matches[0];
+                    } else {
+                        $relation->operator = '';
+                    }
                 }
 
                 $eval_str .= ') ' . (($relation->operator !== false) ? $relation->operator : '') . ' ';
