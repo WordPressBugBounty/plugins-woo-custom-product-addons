@@ -144,9 +144,6 @@ class Admin
     {
         wp_enqueue_script('jquery');
 
-        wp_enqueue_media();
-
-
         if (!isset($this->hook_suffix) || empty($this->hook_suffix)) {
             return;
         }

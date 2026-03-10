@@ -5,7 +5,7 @@ Requires at least: 3.9
 Tested up to: 6.9
 Requires PHP: 7.2
 License: GPLv2 or later
-Stable tag: 3.1.1
+Stable tag: 3.1.2
 
 
 WooCommerce Product Addons Add custom fields to your WooCommerce product page. With an easy-to-use Custom Form Builder.
@@ -49,6 +49,10 @@ For instance, if you need to collect more information from users (or customers w
 🔹 <strong>Password field</strong> - A password input text field to collect passwords.
 
 🔹 <strong>Email field</strong> - HTML5 email field to validate correct email ID format.
+
+🔹 <strong>URL field</strong> - HTML5 URL field to validate and collect website URLs.
+
+🔹 <strong>Separator field</strong> - Adds a visual divider or separator between form fields.
 
 🔹 Grid Layout - Two column Grid layout for fields.
 
@@ -94,18 +98,30 @@ Woocommerce custom product addons premium version is supercharged with a bunch o
 <p>👉 <strong>Grid/Column alignment</strong> - Now you can easily align fields inline as grid/columns.</p>
 <p>👉 <strong>Tool Tip and Help Text</strong> - Help text for each field can be set, which can be shown as either tool tip or as a text alongside the label.</p>
 <p>👉 <strong>Products Field</strong> - Set products as custom form fields, and customers can select the product as an addon.</p>
+<p>👉 <strong>LookUp Tables</strong> - Use spreadsheet-style lookup tables to map input values to specific prices.</p>
+<p>👉 <strong>Accordion & Section Splits</strong> – Organize fields into logical sections or collapsible accordions.</p>
+<p>👉 <strong>Multi-Step Layout</strong> – Break down long and complex forms into multiple, user-friendly steps with progress indicators.</p>
+<p>👉 <strong>Repeating Fields</strong> – Allow customers to dynamically add multiple instances of a field or a group of fields.</p>
+<p>👉 <strong>Range Slider</strong> – A modern slider field that allows users to select a numeric value within a defined range.</p>
+<p>👉 <strong>Dynamic SKU Generation</strong> – Generate dynamic SKU metadata based on selected options.</p>
+<p>👉 <strong>S3 Multipart & Tus Uploads</strong> – Handle massive file uploads reliably with AWS S3 Multipart or Tus protocol.</p>
+<p>👉 <strong>Quantity for Fields</strong> – Assign individual quantity selectors to addon fields.</p>
+<p>👉 <strong>Rich Text Support</strong> – Add beautifully formatted instructions and terms using a rich text editor.</p>
+<p>👉 <strong>WCAG Compliance</strong> – Built with accessibility in mind, ensuring a great experience for all users.</p>
+<p>👉 <strong>UX Oriented Design</strong> – Focused on speed and ease-of-use with a responsive UI.</p>
 And many more features in WooCommerce product addons…
 </blockquote>
 
 
 <strong>*Why WooCommerce Custom Product Addons Plugin?*</strong>
 
-✅ 20+ Field Types
-✅ Highly Configurable
-✅ Drag & Drop form builder
-✅ UX oriented design
-✅ Award-winning Developers
-✅ Dedicated Support Team
+✅ 25+ Field Types
+✅ Highly Configurable & Modular
+✅ Drag & Drop Visual Builder
+✅ Blazing Fast Performance
+✅ UX Oriented Design
+✅ Award-Winning Developers
+✅ Dedicated Priority Support Team
 
 ➡ <strong>[SEE ALL PREMIUM FEATURES](https://acowebs.com/woo-custom-product-addons/?ref=wcpa-readme)</strong>
 
@@ -179,6 +195,8 @@ Yes, the Woocommerce custom fields allow file uploads,enabling customers to uplo
 To calculate the price with the Woocommerce product addons follow these simple steps in the [video](https://youtu.be/a1Ld-PbULNk?feature=shared) ( only available in pro version. get[WooCommerce custom product addons pro](https://acowebs.com/woo-custom-product-addons/) )
 
 == Changelog ==
+= 3.1.2 =
+* WP enqueue media removed
 = 3.1.1 =
 * Woocommerce 10.5 Support
 = 3.1.0 =
