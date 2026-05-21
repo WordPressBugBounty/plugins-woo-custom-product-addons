@@ -104,11 +104,13 @@ class Cart
                         if (!in_array($field['type'], array('separator'))) {
 
 
+                            $display = $metaDisplay->display($field, $form_rules);
                             $item_data[] = array(
                                 'type' => $field['type'],
                                 'name' => is_array($field['name']) ? implode(',', $field['name']) : $field['name'],
                                 'key' => isset($field['label']['label']) ? $field['label']['label'] : $field['label'],
-                                'value' => $metaDisplay->display($field, $form_rules),
+                                'value' => $display,
+                                'display' => (strpos($display, '<p') === 0) ? preg_replace('/<p(.*?)>/', '<p$1><span class="wcpa-block-addon-val"></span>', $display, 1) : '<span class="wcpa-block-addon-val"></span>' . $display, // Adding display key for Store API compatibility
                             );
                         }
                     }

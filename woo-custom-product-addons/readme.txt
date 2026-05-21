@@ -2,10 +2,10 @@
 Contributors: acowebs
 Tags: WooCommerce Product Addons, WooCommerce product options, WooCommerce custom fields, WooCommerce product fields, WooCommerce custom price field
 Requires at least: 3.9
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.2
 License: GPLv2 or later
-Stable tag: 3.1.3
+Stable tag: 3.1.4
 
 
 WooCommerce Product Addons Add custom fields to your WooCommerce product page. With an easy-to-use Custom Form Builder.
@@ -14,16 +14,18 @@ WooCommerce Product Addons Add custom fields to your WooCommerce product page. W
 
 A lightweight WooCommerce product addon plugin that makes adding custom fields to the WooCommerce product page simpler. With an easy-to-use custom form builder, now you can add extra product options quickly.
 
-You can easily personalize the WooCommerce product ordering page (with custom product options or custom fields) and this extra form data submitted by customers will be shown in website backend and also will be enclosed along with the order details.
+You can easily personalize the WooCommerce product ordering page (with custom product options or custom fields) and this extra form data submitted by customers will be shown in website backend and also will be enclosed along with the order details. The right WooCommerce product options can turn a generic product page into a personalized buying experience, and that directly impacts your conversions. Stores using WooCommerce product addons report fewer back-and-forth emails with customers and faster order fulfillment.
 
 <strong>*How is it useful?*</strong>
 
-For instance, if you need to collect more information from users (or customers want personalized products ) on your WooCommerce product pages, like customer notes, collect numbers, dates, color themes, engrave texts for design services from your WooCommerce product page, etc, all you need is this free plugin! (You can enable a lot more features like pricing options, upload field, conditional logic, image selector & color group, add logo, images, etc – but these are available only in the  [premium version](https://acowebs.com/woo-custom-product-addons/?ref=wcpa-readme)  now.)
+For instance, if you need to collect more information from users (or customers want personalized products ) on your WooCommerce product pages, like customer notes, collect numbers, dates, color themes, engrave texts for design services from your WooCommerce product page, etc, all you need is this free plugin! (You can enable a lot more features like pricing options, upload field, conditional logic, image selector & color group, add logo, images, etc – but these are available only in the  [premium version](https://acowebs.com/woo-custom-product-addons/?ref=wcpa-readme)  now.) Well-placed WooCommerce custom fields do more than collect data, they reduce order errors and save your support team hours every week.
 
 = Check out our video demo on how product addons for WooCommerce works: =
 [youtube https://www.youtube.com/watch?v=ENnrHs_JmVY]
 
 ==BASIC FEATURES==
+
+Every WooCommerce product options field below is built to be lightweight, mobile-friendly, and easy for customers to fill out, because a field nobody uses is just clutter.
 
 👉 WooCommerce extra product options or WooCommerce product addons plugin comes with a drag and drop form builder and supports the following form elements:
 
@@ -125,6 +127,8 @@ And many more features in WooCommerce product addons…
 
 ➡ <strong>[SEE ALL PREMIUM FEATURES](https://acowebs.com/woo-custom-product-addons/?ref=wcpa-readme)</strong>
 
+Most store owners try 2–3 plugins before landing here. With WooCommerce product addons that actually show up in order details and emails, there's no more chasing down missing customization info. Pair that with flexible WooCommerce custom fields and you have everything in one place, no patchwork of plugins needed.
+
 == Why Acowebs? ==
 
 <p>At Acowebs, we own a team of expert WordPress & Shopify developers with rich experience in adopting a holistic approach towards delivering stunning UX, Woocommerce plugins ,and features with a competitive edge. We build feature-packed WordPress plugins, WooCommerce plugins and Shopify Apps with in-depth expertise in WordPress domain and high-end UX skills.</p>
@@ -137,6 +141,8 @@ Check out our other WordPress plugins [here](https://profiles.wordpress.org/acow
 "Had an amazing experience using this stunning plugin. They gave the most creative and optional features for product add-ons."
 
 "Reliable and fast support from the team is worth mentioning. The plugin is handy and greatly impressive with the support provided."
+
+From engraving text to selecting print colors, WooCommerce product options handle the kind of order details that would otherwise flood your inbox.
 
 == OTHER USEFUL LINKS ==
 
@@ -181,20 +187,26 @@ Please replace file
 with the one
 
     wp-content\plugins\woocommerce\templates\single-product\add-to-cart\variable.php
+
+Remember, WooCommerce product options will only display if the product is purchasable and has a price set. 
 = Fields are not showing in product page =
 Ensure you have added the forms and have assigned it correctly to the product.
 If still the issues happen, Please ensure you have provide the price for the product.
 Inorder to show the Woocommerce product options plugin fields, it is mandatory to have the product purchasable.
 That means, it must have price set and must be in stock
 = Does this plugin support conditional logic? =
-Yes! The woocommerce product addons plugin support conditional logic, enabling you to show or hide custom product options on your woocommerce product page
+Yes! The woocommerce product addons plugin support conditional logic, enabling you to show or hide custom product options on your woocommerce product page. This makes your WooCommerce product addons smarter and keeps the product page clean for customers.
 = Does the plugin support file uploads for custom products? =
 Yes, the Woocommerce custom fields allow file uploads,enabling customers to upload images and file to personalise products.
-( File uploads is only available in pro version. get [WooCommerce custom product addons pro](https://acowebs.com/woo-custom-product-addons/) )
+( File uploads is only available in pro version. get [WooCommerce custom product addons pro](https://acowebs.com/woo-custom-product-addons/) ), This is one of the most requested WooCommerce custom fields features among store owners selling personalised products.
 = How to calculate the price based on dimensions of the  product? =
 To calculate the price with the Woocommerce product addons follow these simple steps in the [video](https://youtu.be/a1Ld-PbULNk?feature=shared) ( only available in pro version. get[WooCommerce custom product addons pro](https://acowebs.com/woo-custom-product-addons/) )
 
 == Changelog ==
+= 3.1.4 =
+* WordPress 7.0 Support
+* Refined slashes/separators removal on WooCommerce 10.6+ cart/checkout blocks.
+* Improved WCAG compliance: Converted group fields into fieldset and legend tags for better accessibility.
 = 3.1.3 =
 * Fixed WooCommerce 10.6 compatibility: Hide unnecessary slashes/separators on cart/checkout blocks.
 * Woocommerce 10.7 Support
