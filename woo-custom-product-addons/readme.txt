@@ -5,7 +5,7 @@ Requires at least: 3.9
 Tested up to: 7.0
 Requires PHP: 7.2
 License: GPLv2 or later
-Stable tag: 3.1.4
+Stable tag: 3.1.5
 
 
 WooCommerce Product Addons Add custom fields to your WooCommerce product page. With an easy-to-use Custom Form Builder.
@@ -203,6 +203,8 @@ Yes, the Woocommerce custom fields allow file uploads,enabling customers to uplo
 To calculate the price with the Woocommerce product addons follow these simple steps in the [video](https://youtu.be/a1Ld-PbULNk?feature=shared) ( only available in pro version. get[WooCommerce custom product addons pro](https://acowebs.com/woo-custom-product-addons/) )
 
 == Changelog ==
+= 3.1.5 =
+* Woocommerce 10.9 Support
 = 3.1.4 =
 * WordPress 7.0 Support
 * Refined slashes/separators removal on WooCommerce 10.6+ cart/checkout blocks.
