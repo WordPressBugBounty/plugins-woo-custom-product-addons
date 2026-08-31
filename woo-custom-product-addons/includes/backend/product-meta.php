@@ -54,7 +54,7 @@ class Product_Meta
             $link  = '';
             if (is_array($forms)) {
                 foreach ($forms as $v) {
-                    $link .= '<a href="'.getFormEditUrl($v).'" target="_blank">A'.get_the_title($v).'</a>, ';
+                    $link .= '<a href="'.getFormEditUrl($v).'" target="_blank">'.get_the_title($v).'</a>, ';
                 }
             }
             echo trim($link, ', ');
