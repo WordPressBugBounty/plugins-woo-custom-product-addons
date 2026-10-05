@@ -338,6 +338,10 @@ class Form
         $response = array();
         if (is_array($posts)) {
             foreach ($posts as $post_id) {
+                if (get_post_type($post_id) !== self::$CPT) {
+                    $response[$post_id] = ['status' => false];
+                    continue;
+                }
                 $status = wp_delete_post($post_id);
                 if ($status) {
                     $response[$post_id] = ['status' => true];
@@ -355,6 +359,10 @@ class Form
         $response = array();
         if (is_array($posts)) {
             foreach ($posts as $post_id) {
+                if (get_post_type($post_id) !== self::$CPT) {
+                    $response[$post_id] = ['status' => false];
+                    continue;
+                }
                 $status = wp_trash_post($post_id);
                 if ($status) {
                     $response[$post_id] = ['status' => true];
@@ -372,6 +380,10 @@ class Form
         $response = array();
         if (is_array($posts) && ! empty($posts)) {
             foreach ($posts as $post_id) {
+                if (get_post_type($post_id) !== self::$CPT) {
+                    $response[$post_id] = ['status' => false];
+                    continue;
+                }
                 $status = wp_untrash_post($post_id);
                 if ($status) {
                     $response[$post_id] = ['status' => true];
@@ -549,6 +561,9 @@ class Form
     {
         $response = array();
         if ($post_id) {
+            if (get_post_type($post_id) !== self::$CPT) {
+                return ['status' => false];
+            }
             $form   = array(
                 'ID'          => $post_id,
                 'post_status' => $status,
@@ -616,6 +631,10 @@ class Form
             $response['redirect'] = $link;
             $post_id              = $new_post_id;
         } else {
+            $_post = get_post($post_id);
+            if (!$_post || $_post->post_type !== self::$CPT) {
+                return ['status' => false, 'id' => $post_id, 'redirect' => false];
+            }
             $this->update($post_id, $title, $fb_data_json, $fb_formula_json, $lang,$modDate);
         }
 

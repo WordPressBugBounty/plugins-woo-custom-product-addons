@@ -21,7 +21,7 @@ if (is_array($meta_data) && count($meta_data)) {
                     <tr class="item_wcpa">
                         <td class="name">
                             <?php
-                            echo $label_printed ? '' : $data['label'];
+                            echo $label_printed ? '' : esc_html($data['label']);
                             $label_printed = true;
                             ?>
                         </td>
@@ -30,10 +30,10 @@ if (is_array($meta_data) && count($meta_data)) {
                             <div class="view">
                                 <?php
                                 if (isset($v['i'])) {
-                                    echo '<strong>' . __('Label:', 'woo-custom-product-addons') . '</strong> ' . __($v['label'], 'woo-custom-product-addons') . '<br>';
-                                    echo '<strong>' . __('Value:', 'woo-custom-product-addons') . '</strong> ' . $v['value'];
+                                    echo '<strong>' . esc_html__('Label:', 'woo-custom-product-addons') . '</strong> ' . esc_html($v['label']) . '<br>';
+                                    echo '<strong>' . esc_html__('Value:', 'woo-custom-product-addons') . '</strong> ' . esc_html($v['value']);
                                 } else {
-                                    echo $v;
+                                    echo esc_html($v);
                                 }
                                 ?>
 
@@ -42,22 +42,20 @@ if (is_array($meta_data) && count($meta_data)) {
                                 <?php
                                 if (isset($v['i'])) {
                                         ?>
-                                <?php echo '<strong>' . __('Label:', 'woo-custom-product-addons') . '</strong>'; ?>  <input type="text" name="wcpa_meta[value][<?php echo $item_id; ?>][<?php echo $k; ?>][<?php echo $l; ?>][label]"
-                                        value="<?php echo $v['label'] ?>"> <br>
-                                <?php echo '<strong>' . __('Value:', 'woo-custom-product-addons') . '</strong>'; ?> <input type="text" name="wcpa_meta[value][<?php echo $item_id; ?>][<?php echo $k; ?>][<?php echo $l; ?>][value]"
-                                        value="<?php echo $v['value'] ?>">
+                                <?php echo '<strong>' . esc_html__('Label:', 'woo-custom-product-addons') . '</strong>'; ?>  <input type="text" name="wcpa_meta[value][<?php echo esc_attr($item_id); ?>][<?php echo esc_attr($k); ?>][<?php echo esc_attr($l); ?>][label]"
+                                        value="<?php echo esc_attr($v['label']); ?>"> <br>
+                                <?php echo '<strong>' . esc_html__('Value:', 'woo-custom-product-addons') . '</strong>'; ?> <input type="text" name="wcpa_meta[value][<?php echo esc_attr($item_id); ?>][<?php echo esc_attr($k); ?>][<?php echo esc_attr($l); ?>][value]"
+                                        value="<?php echo esc_attr($v['value']); ?>">
                                         <?php
                                     } else {
                                         ?>
-                                <input type="text" name="wcpa_meta[value][<?php echo $item_id; ?>][<?php echo $k; ?>][<?php echo $l; ?>]" value="<?php echo $v ?>">
+                                <input type="text" name="wcpa_meta[value][<?php echo esc_attr($item_id); ?>][<?php echo esc_attr($k); ?>][<?php echo esc_attr($l); ?>]" value="<?php echo esc_attr($v); ?>">
 
                             <?php }
                                 ?>
 
 
                             </div>
-                        </td>
-
                         </td>
 
                         <td class="wc-order-edit-line-item" width="1%">
@@ -76,9 +74,9 @@ if (is_array($meta_data) && count($meta_data)) {
 
                         <?php
                         if ($data['type'] == 'hidden' && empty($data['label'])) {
-                            echo $data['label'] . '[hidden]';
+                            echo esc_html($data['label']) . '[hidden]';
                         } else {
-                            echo $data['label'];
+                            echo esc_html($data['label']);
                         }
                         ?>
                     </td>
@@ -87,11 +85,11 @@ if (is_array($meta_data) && count($meta_data)) {
 
                             <?php
                             if ($data['type'] == 'color') {
-                                echo '<span style = "color:' . $data['value'] . ';font-size: 20px;
+                                echo '<span style = "color:' . esc_attr($data['value']) . ';font-size: 20px;
             padding: 0;
-    line-height: 0;">&#9632;</span>' . $data['value'];
+    line-height: 0;">&#9632;</span>' . esc_html($data['value']);
                             } else {
-                                echo nl2br($data['value']);
+                                echo nl2br(esc_html($data['value']));
                             }
                             ?>
                         </div>
@@ -99,20 +97,20 @@ if (is_array($meta_data) && count($meta_data)) {
                         <div class="edit" style="display: none;">
                             <?php
                             if ($data['type'] == 'paragraph' || $data['type'] == 'header') {
-                                echo $data['value'];
+                                echo wp_kses_post($data['value']);
                                 echo '<input type="hidden" 
-                                       name="wcpa_meta[value][' . $item_id . '][' . $k . ']" 
+                                       name="wcpa_meta[value][' . esc_attr($item_id) . '][' . esc_attr($k) . ']" 
                                        value="1">';
                             } else if($data['type'] == 'textarea' ) {
                                 ?>
-                                <textarea  name="wcpa_meta[value][<?php echo $item_id; ?>][<?php echo $k; ?>]" ><?php echo ($data['value']) ?></textarea>
+                                <textarea  name="wcpa_meta[value][<?php echo esc_attr($item_id); ?>][<?php echo esc_attr($k); ?>]" ><?php echo esc_textarea($data['value']); ?></textarea>
                                 <?php
                             }
                             else {
                                 ?>
                                 <input type="text" 
-                                       name="wcpa_meta[value][<?php echo $item_id; ?>][<?php echo $k; ?>]" 
-                                       value="<?php echo htmlspecialchars($data['value']) ?>">
+                                       name="wcpa_meta[value][<?php echo esc_attr($item_id); ?>][<?php echo esc_attr($k); ?>]" 
+                                       value="<?php echo esc_attr($data['value']); ?>">
                                        <?php
                                    }
                                    ?>
@@ -137,13 +135,10 @@ if (is_array($meta_data) && count($meta_data)) {
         ?>
         <tr>
             <!--   /* dummy field , it will help to iterate through all data for removing last item*/-->
-        <input type="hidden" name="wcpa_meta[value][<?php echo $item_id; ?>][<?php echo $k + 99; ?>]" value="">
+        <input type="hidden" name="wcpa_meta[value][<?php echo esc_attr($item_id); ?>][<?php echo esc_attr($k + 99); ?>]" value="">
 
         </tr>
     </table>
 
     <?php
 }
-
-
-

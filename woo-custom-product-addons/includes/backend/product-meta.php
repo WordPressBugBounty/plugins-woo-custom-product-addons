@@ -54,7 +54,9 @@ class Product_Meta
             $link  = '';
             if (is_array($forms)) {
                 foreach ($forms as $v) {
-                    $link .= '<a href="'.getFormEditUrl($v).'" target="_blank">'.get_the_title($v).'</a>, ';
+                    if (get_post_status($v)) {
+                        $link .= '<a href="'.getFormEditUrl($v).'" target="_blank">'.esc_html(get_the_title($v)).'</a>, ';
+                    }
                 }
             }
             echo trim($link, ', ');
@@ -169,9 +171,16 @@ class Product_Meta
     {
         $response = ['status' => true];
 
+        if (get_post_type($form_id) !== Form::$CPT) {
+            return ['status' => false];
+        }
+
         if (is_array($products_ids)) {
             foreach ($products_ids as $v) {
                 $product_id = (int) sanitize_text_field($v);
+                if (get_post_type($product_id) !== 'product') {
+                    continue;
+                }
                 $meta_field = get_post_meta($product_id, self::$fieldKey, true);
 
                 if (is_array($meta_field)) {
@@ -182,6 +191,7 @@ class Product_Meta
                 }
                 array_unique($meta_field);
                 update_post_meta($product_id, self::$fieldKey, $meta_field);
+                refreshCaches(false, $product_id);
             }
         }
         return $response;

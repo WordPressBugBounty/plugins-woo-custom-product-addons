@@ -36,6 +36,8 @@ class Order
         /** support for block checkout */
         add_action('woocommerce_store_api_checkout_update_order_meta',
             array($this, 'checkout_order_processed'), 1, 1);
+        // Ensure addon metadata is processed for asynchronous payments and retries
+        add_action('woocommerce_order_status_processing', array($this, 'checkout_order_processed'), 5, 1);
 
 
         add_action('woocommerce_checkout_subscription_created', array($this, 'checkout_subscription_created'), 10,
@@ -47,7 +49,7 @@ class Order
         add_action('woocommerce_after_order_itemmeta', array($this, 'order_item_line_item_html'), 10, 3);
 
 
-        add_action('woocommerce_order_item_get_formatted_meta_data', array(
+        add_filter('woocommerce_order_item_get_formatted_meta_data', array(
             $this,
             'order_item_get_formatted_meta_data',
         ), 10, 2);
@@ -140,10 +142,13 @@ class Order
     public function checkout_order_processed($order_id)
     {
         $order = wc_get_order($order_id);
+        if (!$order || !is_a($order, 'WC_Order')) {
+            return;
+        }
         $items = $order->get_items();
         if (is_array($items)) {
             foreach ($items as $item_id => $item) {
-                $this->update_order_item($item, $order_id);
+                $this->update_order_item($item);
             }
         }
     }

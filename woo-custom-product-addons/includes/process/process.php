@@ -504,8 +504,7 @@ class Process
 
     public function register_routes()
     {
-
-        $this->add_route('/upload/(?P<id>[0-9]+)/(?P<fname>[,a-zA-Z0-9_-]+)', 'ajax_upload', 'POST');
+        // File upload is not supported in the free version
     }
 
     private function add_route($slug, $callBack, $method = 'GET')
