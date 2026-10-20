@@ -5,7 +5,7 @@ Requires at least: 3.9
 Tested up to: 7.1
 Requires PHP: 7.2
 License: GPLv2 or later
-Stable tag: 3.1.8
+Stable tag: 3.1.9
 
 
 WooCommerce Product Addons Add custom fields to your WooCommerce product page. With an easy-to-use Custom Form Builder.
@@ -203,6 +203,16 @@ Yes, the Woocommerce custom fields allow file uploads,enabling customers to uplo
 To calculate the price with the Woocommerce product addons follow these simple steps in the [video](https://youtu.be/a1Ld-PbULNk?feature=shared) ( only available in pro version. get[WooCommerce custom product addons pro](https://acowebs.com/woo-custom-product-addons/) )
 
 == Changelog ==
+= 3.1.9 =
+* Security - Escape and restrict the field type shown in the cart
+* Fix - WPML: the language set before the add-on form lookup is restored afterwards
+* Fix - WPML: forms assigned by category appear on translated products
+* Fix - Form editor does not save while field errors are shown, and warns before leaving with unsaved changes
+* Fix - Form changes take effect on sites with a persistent object cache
+* Fix - URL fields accept long domain endings such as .solutions
+* Fix - Language flags in the form editor are shown at their normal size with current WPML
+* Fix - Removing a field in the form editor no longer opens it
+* WooCommerce 11.2 Support
 = 3.1.8 =
 * Bug Fixes
 * Woocommerce 11.1 Support

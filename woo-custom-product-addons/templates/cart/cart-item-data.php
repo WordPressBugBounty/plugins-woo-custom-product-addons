@@ -8,10 +8,18 @@ if ( ! defined('ABSPATH')) {
 <ul class="wcpa_cart_meta">
     <?php
     foreach ($item_data as $data) :
-        $class = isset($data['type']) ? ' wcpa_cart_item_'.$data['type'] : '';
+        /*
+         * The field type comes from the saved form and reaches this template
+         * through Cart::get_item_data(). Forms saved before this fix may hold any
+         * string here, so it is reduced to class characters and escaped (SEC-005).
+         * Real types (text, checkbox-group, ...) keep the same class.
+         */
+        $class = isset($data['type']) && is_scalar($data['type'])
+            ? ' wcpa_cart_item_'.sanitize_html_class((string) $data['type'])
+            : '';
         ?>
         <li class="wcpa_cart_meta_item<?php
-        echo $class; ?>">
+        echo esc_attr($class); ?>">
             <?php
             if( ('wcpa_empty_label'!==$data['key'])){
 

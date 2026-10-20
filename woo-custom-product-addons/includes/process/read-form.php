@@ -245,6 +245,20 @@ class ReadForm
         return $value;
     }
 
+    /**
+     * Reads a text-like field (text, textarea, number, email, url, hidden, ...) from the request.
+     *
+     * Hidden fields: the value is taken from the request on purpose, not from the saved form
+     * (owner decision DEC-033, 2026-10-08). Stores and developers fill hidden fields from other
+     * fields, other actions on the site, the page address or the customer's account, and store
+     * that value with the order. A submitted hidden value can therefore differ from the saved
+     * one; that is expected, not tampering. Do not replace it with the saved value or reject it.
+     * Use cases: hub docs/code/basic-fields-and-validation.md, section "Hidden fields use the
+     * submitted value".
+     *
+     * @param object $field Field definition (name, type).
+     * @return string Sanitized value.
+     */
     public
     function readTextFields(
         $field

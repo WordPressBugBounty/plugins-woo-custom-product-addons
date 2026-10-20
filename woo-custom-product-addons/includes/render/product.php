@@ -242,8 +242,20 @@ class Product
 //                );
 //                $this->ml->setCurrentLang($currentLag);
 //            } else {
-            if ($this->ml->is_active()) {
-                $currentLag = $this->ml->current_language();
+            /*
+             * WPML (ML-003, same fix as Pro): match the product's categories with all their
+             * translations, by term_taxonomy_id. The previous lookup read the categories in the page
+             * language (WPML "Adjust IDs" returns the translated term) and then searched forms in the
+             * default language; WPML 5.1 no longer maps term IDs for queries with suppress_filters, so
+             * translated products found no category forms. A form linked to any language version of
+             * a category applies to every language version of the product (owner decision, DEC-050).
+             */
+            if ($this->ml->is_wpml()) {
+                $form_ids = $this->formIdsByTermTaxonomyIds(
+                    'product_cat',
+                    $this->ml->termTaxonomyIdsWithTranslations($product_id, 'product_cat')
+                );
+            } elseif ($this->ml->is_active()) {
                 $this->ml->setCurrentLang($this->ml->default_language());
                 $form_ids = get_posts(
                 array(
@@ -261,7 +273,7 @@ class Product
 
                                 )
                 );
-                $this->ml->setCurrentLang($currentLag);
+                $this->ml->restoreLang(); // pop the switch above (WPML stack, ML-002)
             } else {
                 $form_ids = get_posts(
                     array(
@@ -289,7 +301,6 @@ class Product
             /** @since 5.0.14 **/
             /* Earlier form was loaded based on the order the user checks the form in backend */
             if ($this->ml->is_active()) {
-                $currentLag = $this->ml->current_language();
                 $this->ml->setCurrentLang($this->ml->default_language());
                 $form_ids_set2 = get_posts(
                     array(
@@ -300,7 +311,7 @@ class Product
                         'posts_per_page' => -1,
                     )
                 );
-                $this->ml->setCurrentLang($currentLag);
+                $this->ml->restoreLang(); // pop the switch above (WPML stack, ML-002)
 
             }else{
                 $form_ids_set2 = get_posts(
@@ -335,6 +346,39 @@ class Product
         }
 
         return $form_ids;
+    }
+
+    /**
+     * Forms linked to any of the given categories (WPML, ML-003), as default-language form IDs.
+     *
+     * Queries by term_taxonomy_id, which WP_Tax_Query uses as is and WPML does not filter.
+     * Results are mapped to the default-language form, so a base form and its translation
+     * count once; get_form_ids maps them to the page language at the end.
+     *
+     * @param string $taxonomy product_cat.
+     * @param int[]  $ttIds    term_taxonomy_ids, already including translations.
+     * @return int[] An empty list when $ttIds is empty (as the previous lookup returned).
+     */
+    private function formIdsByTermTaxonomyIds($taxonomy, $ttIds)
+    {
+        if (empty($ttIds)) {
+            return [];
+        }
+        $ids = get_posts(array(
+            'tax_query' => array(
+                array(
+                    'taxonomy' => $taxonomy,
+                    'field' => 'term_taxonomy_id',
+                    'include_children' => false,
+                    'terms' => $ttIds,
+                ),
+            ),
+            'fields' => 'ids',
+            'post_type' => Form::$CPT,
+            'posts_per_page' => -1,
+        ));
+
+        return array_values($this->ml->lang_object_ids($ids, 'post', true));
     }
 
     /**

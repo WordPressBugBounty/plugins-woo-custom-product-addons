@@ -340,6 +340,61 @@ class ML
         return $this->default_lang;
     }
 
+    /** True when WPML (not Polylang) is the active multilingual plugin. */
+    public function is_wpml()
+    {
+        return $this->_active === 'wpml';
+    }
+
+    /**
+     * term_taxonomy_ids of a post's terms in $taxonomy, plus every WPML translation of
+     * those terms (ML-003, same as Pro).
+     *
+     * Read from term_relationships directly, so neither the page language nor WPML's
+     * "Adjust IDs" setting changes the result (wp_get_object_terms returns the
+     * current-language translation when Adjust IDs is on). Translations come from WPML's
+     * translation groups (`wpml_get_element_translations`; for terms its element_id is
+     * the term_taxonomy_id). Example: category 33 with French translation 34 -> [33, 34]
+     * in any page language; no terms -> [].
+     *
+     * @param int    $post_id  Product or form ID.
+     * @param string $taxonomy product_cat.
+     * @return int[]
+     */
+    public function termTaxonomyIdsWithTranslations($post_id, $taxonomy)
+    {
+        global $wpdb;
+        $own = array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT tr.term_taxonomy_id FROM {$wpdb->term_relationships} AS tr"
+            . " INNER JOIN {$wpdb->term_taxonomy} AS tt ON tt.term_taxonomy_id = tr.term_taxonomy_id"
+            . " WHERE tr.object_id = %d AND tt.taxonomy = %s",
+            (int)$post_id,
+            $taxonomy
+        )));
+        $all = $own;
+        if ($this->_active === 'wpml') {
+            foreach ($own as $ttId) {
+                $trid = apply_filters('wpml_element_trid', null, $ttId, 'tax_' . $taxonomy);
+                if (!$trid) {
+                    continue;
+                }
+                $translations = apply_filters('wpml_get_element_translations', null, $trid, 'tax_' . $taxonomy);
+                foreach ((array)$translations as $translation) {
+                    if (isset($translation->element_id)) {
+                        $all[] = (int)$translation->element_id;
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($all));
+    }
+
+    /**
+     * Switches the WPML language for a lookup. Pair every call with restoreLang().
+     *
+     * @param string $lang_code
+     */
     public function setCurrentLang($lang_code)
     {
         if ($this->_active == 'wpml') {
@@ -350,6 +405,24 @@ class ML
         }
 
 
+    }
+
+    /**
+     * Returns to the language that was current before the matching setCurrentLang().
+     *
+     * WPML 5.x keeps a stack of switches: switch_lang('xx') pushes the previous language,
+     * switch_lang(null) pops it. Restoring with switch_lang(<previous code>) pushes a second
+     * frame instead, so a caller that wraps the plugin in its own switch_lang(...) /
+     * switch_lang(null) got a wrong language back (ML-002: fr -> ar -> plugin -> back in en).
+     * Older WPML without the stack treats null as "back to the request's language", which is
+     * also the right target here. Polylang: nothing to restore (setCurrentLang does nothing).
+     */
+    public function restoreLang()
+    {
+        if ($this->_active == 'wpml') {
+            global $sitepress;
+            $sitepress->switch_lang(null);
+        }
     }
 
     /**

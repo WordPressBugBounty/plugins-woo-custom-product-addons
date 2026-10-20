@@ -281,12 +281,43 @@ function uniqSectionId()
     return uniqid(rand(0, 10), false);
 }
 
+/**
+ * Reduce a saved field type to the characters a field type can contain.
+ *
+ * Every type the form builder creates (text, checkbox-group, datetime-local,
+ * productGroup, ...) uses only A-Z, a-z, 0-9, "_" and "-", so real types are
+ * returned unchanged. Anything else (quotes, angle brackets, spaces) is
+ * removed, because the type is later printed into HTML class names.
+ * sanitize_key() is not used: it lowercases, which would change productGroup.
+ *
+ * | Input                     | Result             |
+ * | ------------------------- | ------------------ |
+ * | 'checkbox-group'          | 'checkbox-group'   |
+ * | 'x"><img src=x>'          | 'ximgsrcx'         |
+ * | array / object            | ''                 |
+ *
+ * @param mixed $type Field type from the submitted form JSON.
+ * @return string
+ */
+function sanitizeFieldType($type)
+{
+    if ( ! is_scalar($type)) {
+        return '';
+    }
+
+    return preg_replace('/[^A-Za-z0-9_-]/', '', (string) $type);
+}
+
 function sanitizeFields(&$formBuilderData, $allowed_html)
 {
     foreach ($formBuilderData as $sectionKey => $section) {
         foreach ($section['fields'] as $rowIndex => $row) {
             foreach ($row as $colIndex => $field) {
                 $_field = &$formBuilderData[$sectionKey]['fields'][$rowIndex][$colIndex];
+                if (isset($field['type'])) {
+                    // The type is printed into HTML (cart class) later; keep only class characters (SEC-005).
+                    $_field['type'] = $field['type'] = sanitizeFieldType($field['type']);
+                }
                 if (isset($field['label']) && ($field['type'] == 'content' || $field['type'] == 'header')) {
                     $_field['label'] = html_entity_decode(wp_kses($field['label'], 'post'));
                 } elseif (isset($field['label'])) {
@@ -439,6 +470,18 @@ function orderMetaValueForDb($label,$value){
     $format = Config::get_config('item_meta_format');
     return str_replace(['{label}','{value}'], [$label,$value], $format);
 }
+/**
+ * Clears the prepared-form cache (transients `wcpa_fields_<product_id>[_<lang>]`, 24 h) and the
+ * settings cache after a form, product or settings change.
+ *
+ * It first tries a bulk delete by prefix through the options table. On sites with a persistent
+ * object cache (Redis, Memcached) transients are not in that table, so each affected product
+ * is cleared by key instead (products assigned directly or through the form's categories, the
+ * only ways a Free form reaches a product). See bulkDeleteTransients() (CACHE-002, DEC-040).
+ *
+ * @param int|false $form_id    Form whose products must show its new version.
+ * @param int|false $product_id Product whose cache must be rebuilt.
+ */
 function refreshCaches($form_id = false, $product_id = false)
 {
     delete_transient(WCPA_PRODUCTS_TRANSIENT_KEY);
@@ -451,15 +494,15 @@ function refreshCaches($form_id = false, $product_id = false)
     }
     if ($product_id) {
         delete_transient('wcpa_fields_' . $product_id);
-        $status = delete_transients_with_prefix('wcpa_fields_'.$product_id);
+        $status = bulkDeleteTransients('wcpa_fields_'.$product_id);
         if(!$status && $ml->is_active()){
             foreach ($langs as $l){
                 delete_transient('wcpa_fields_' . $product_id.'_'.$l);
-                delete_transients_with_prefix('wcpa_fields_'.$product_id.'_'.$l);
+                bulkDeleteTransients('wcpa_fields_'.$product_id.'_'.$l);
             }
         }
     } elseif ($form_id) {
-        $status = delete_transients_with_prefix('wcpa_fields_');
+        $status = bulkDeleteTransients('wcpa_fields_');
         if (!$status) {
             /** some servers stores transients differently, in  that case this bulk action doesnt work,
              * so refresh cache individually findig all products connected with this form id
@@ -481,7 +524,7 @@ distinct object_id from $wpdb->term_relationships
                 delete_transient('wcpa_fields_' . $id);
 
                 if( $ml->is_active()){
-                    $status = delete_transients_with_prefix('wcpa_fields_'.$id);
+                    $status = bulkDeleteTransients('wcpa_fields_'.$id);
                     if (!$status) {
                         foreach ($langs as $l){
                             delete_transient('wcpa_fields_' . $id.'_'.$l);
@@ -492,7 +535,7 @@ distinct object_id from $wpdb->term_relationships
             }
         }
     } else {
-        $status = delete_transients_with_prefix('wcpa_fields_');
+        $status = bulkDeleteTransients('wcpa_fields_');
         if (!$status) {
             /** some servers stores transients differently, in  that case this bulk action doesnt work, so refresh cache individually */
             $form = new Form();
@@ -512,13 +555,31 @@ distinct object_id from $wpdb->term_relationships
         }
     }
 
-    $status =  delete_transients_with_prefix('wcpa_settings_');
+    $status =  bulkDeleteTransients('wcpa_settings_');
     if (!$status && $ml->is_active()) {
 
         foreach ($langs as $l){
             delete_transient( 'wcpa_settings_'.WCPA_VERSION.'_'.$l);
         }
     }
+}
+
+/**
+ * Deletes transients by prefix through the options table, unless the site uses a persistent
+ * object cache. There, transients live in the cache; the options table finds nothing, or only
+ * rows left from before the cache was enabled, which would wrongly report success and skip the
+ * per-product purge in refreshCaches() (CACHE-002, same fix as Pro CACHE-001). Returning false
+ * makes the caller clear each key.
+ *
+ * @param string $prefix Transient name prefix.
+ * @return bool True when the bulk delete ran and found transients.
+ */
+function bulkDeleteTransients($prefix)
+{
+    if (wp_using_ext_object_cache()) {
+        return false;
+    }
+    return delete_transients_with_prefix($prefix);
 }
 
 function get_transient_keys_with_prefix($prefix)
