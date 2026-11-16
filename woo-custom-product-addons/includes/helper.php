@@ -134,16 +134,28 @@ function getValueFromArrayValues($val)
 }
 
 
+/**
+ * Read a stored add-on date or time text into a DateTime in UTC (conditions; processDateValueForCl()).
+ *
+ * Always UTC (ORD-010): the text names a calendar day, so it must not move with PHP's default zone, which a
+ * plugin or snippet may change (WordPress keeps it at UTC, where the result is the same as before). A date-only
+ * text keeps the current time of day as before ('Y-m-d' without '!'); both sides of a condition are read the
+ * same way. date_create_from_format() refuses a text in another format (DateTime() accepts almost anything).
+ *
+ * @param string $dateString Stored text, for example '2030-06-15'.
+ * @param string $type       Field type.
+ *
+ * @return \DateTime|false
+ */
 function getUNIDate($dateString, $type = 'date')
 {
-    /** using date_create_from_format as it will return dates in wrong format or invalid date as false. DateTime() will return value even for incorrect date value. so avoid using DateTime()  */
-
+    $utc = new \DateTimeZone('UTC');
     if ($type == 'time') {
-        return date_create_from_format('H:i', $dateString);
+        return date_create_from_format('H:i', $dateString, $utc);
     } elseif ($type == 'datetime-local' || $type == 'datetime') {
-        return date_create_from_format('Y-m-d H:i', $dateString);
+        return date_create_from_format('Y-m-d H:i', $dateString, $utc);
     } else {
-        return date_create_from_format('Y-m-d', $dateString);
+        return date_create_from_format('Y-m-d', $dateString, $utc);
     }
 }
 
@@ -380,10 +392,47 @@ function getFormEditUrl($post_id)
 }
 
 
+/**
+ * Print a stored add-on date or time text in $dateFormat, as the calendar day and clock time it names.
+ *
+ * Stored values are calendar texts ('Y-m-d', 'Y-m-d H:i', 'H:i'), not moments. They are read in UTC and printed
+ * in UTC, so the text that comes out names the same day and time whatever PHP's default zone or the WordPress
+ * "Timezone" setting is. Until ORD-010 the value was read with strtotime(), in PHP's default zone, and printed in
+ * UTC: right while the default zone is UTC (WordPress sets it in wp-settings.php), but when a plugin, theme or
+ * snippet calls date_default_timezone_set() a date-only value printed the day before in zones east of UTC and
+ * date-and-time and time values moved by the zone's offset (ticket 37236, T-37236 evidence section 4).
+ *
+ * | $value             | $dateFormat | Result in every PHP default zone | Before ORD-010, PHP zone not UTC |
+ * | ------------------ | ----------- | -------------------------------- | -------------------------------- |
+ * | '1975-12-20'       | 'm/d/Y'     | 12/20/1975                       | Kolkata: 12/19/1975              |
+ * | '1975-12-20 10:00' | 'm/d/Y H:i' | 12/20/1975 10:00                 | Chicago: 12/20/1975 16:00        |
+ * | '14:30'            | 'g:i a'     | 2:30 pm                          | Chicago: 8:30 pm                 |
+ * | anything           | false or '' | $value unchanged                 | same                             |
+ * | '' or unreadable   | 'm/d/Y'     | false (wp_date() of no time)     | same                             |
+ *
+ * Used by every server view of a date or time field: MetaDisplay (cart, checkout, Store API, order screens,
+ * e-mails, My account) and Order::order_meta_plain (the stored row when "Save Date and Date & Time in custom
+ * format" is on). Pro has the same function.
+ *
+ * @param string       $value      Stored text.
+ * @param string|false $dateFormat PHP date format; false or '' returns $value.
+ *
+ * @return string|false
+ */
 function formattedDate($value, $dateFormat = false)
 {
-    return ($dateFormat ? (function_exists('wp_date') ? wp_date($dateFormat,
-        strtotime($value), new \DateTimeZone('UTC')) : date($dateFormat, strtotime($value))) : $value);
+    if (!$dateFormat) {
+        return $value;
+    }
+    $utc       = new \DateTimeZone('UTC');
+    $timestamp = false;
+    if (is_scalar($value) && trim((string)$value) !== '') {
+        // The parser strtotime() uses, in UTC instead of PHP's default zone.
+        $parsed    = date_create((string)$value, $utc);
+        $timestamp = $parsed ? $parsed->getTimestamp() : false;
+    }
+
+    return function_exists('wp_date') ? wp_date($dateFormat, $timestamp, $utc) : gmdate($dateFormat, (int)$timestamp);
 }
 
 
@@ -555,11 +604,97 @@ distinct object_id from $wpdb->term_relationships
         }
     }
 
-    $status =  bulkDeleteTransients('wcpa_settings_');
-    if (!$status && $ml->is_active()) {
+    deleteSettingsCaches(false); // CACHE-003
+}
 
-        foreach ($langs as $l){
-            delete_transient( 'wcpa_settings_'.WCPA_VERSION.'_'.$l);
+/**
+ * Plugin versions whose settings cache may exist on this site (CACHE-003).
+ *
+ * The settings cache `wcpa_settings_<version>[_<lang>]` (Config::get_config) is a transient without
+ * expiry named after the running version, so each version reads only its own entry, and an update
+ * leaves the previous version's entry behind. A settings or design save clears every entry with a
+ * prefix delete in the options table. On a site with a persistent object cache (Redis, Memcached)
+ * that delete cannot run (bulkDeleteTransients), and until CACHE-003 only the running version's entry
+ * was cleared. A rollback to the previous version then read the settings it had cached before the
+ * update, until the settings were saved again (seen on a staging copy, ticket 37001).
+ *
+ * Entries in an object cache cannot be listed, so the versions are known instead: each version that
+ * builds the cache records itself (recordSettingsCacheVersion), and releases from before CACHE-003,
+ * which do not record, are listed below. Both editions are listed because Pro and Free use the same
+ * settings option (`wcpa_settings_key`) and cache name, and a store can switch from one to the other
+ * (inferred from the code; the list is the same in both editions).
+ *
+ * Example: a store on Pro 5.8.3 with Redis updates to 5.9.0 and changes a setting; the save clears
+ * `wcpa_settings_5.8.3` (listed) as well as `wcpa_settings_5.9.0`, so going back to 5.8.3 shows the
+ * new setting.
+ *
+ * Why no expiry instead: without an object cache, a transient with an expiry is not autoloaded, so
+ * every page would read the options table twice more for the settings.
+ *
+ * @return string[] Version numbers, the running version included.
+ */
+function settingsCacheVersions()
+{
+    $before = [
+        // Pro 5.x releases (readme.txt changelog)
+        '5.8.3', '5.8.2', '5.8.1', '5.8.0', '5.7.1', '5.7.0', '5.6.0', '5.5.2', '5.5.1', '5.5.0', '5.4.7',
+        '5.4.6', '5.4.5', '5.4.4', '5.4.3', '5.4.2', '5.4.1', '5.4.0', '5.3.1', '5.3.0', '5.2.2', '5.2.1',
+        '5.1.0', '5.0.17', '5.0.16', '5.0.0',
+        // Free 3.x releases (readme.txt changelog)
+        '3.1.9', '3.1.8', '3.1.7', '3.1.6', '3.1.5', '3.1.4', '3.1.3', '3.1.2', '3.1.1', '3.1.0', '3.0.19',
+        '3.0.18', '3.0.17', '3.0.16', '3.0.15', '3.0.14', '3.0.13', '3.0.12', '3.0.10', '3.0.9', '3.0.8',
+        '3.0.7', '3.0.6', '3.0.5', '3.0.4', '3.0.3', '3.0.2', '3.0.0',
+    ];
+    $recorded = get_option('wcpa_settings_cache_versions', []);
+
+    return array_values(array_unique(array_merge($before, is_array($recorded) ? $recorded : [], [WCPA_VERSION])));
+}
+
+/**
+ * Records the running version as one whose settings cache exists (CACHE-003, see settingsCacheVersions).
+ * Called by Config::get_config when it builds the cache, so it runs once per settings change at most;
+ * the option is not autoloaded and is written only when the version is new to the site.
+ */
+function recordSettingsCacheVersion()
+{
+    $recorded = get_option('wcpa_settings_cache_versions', []);
+    if (!is_array($recorded)) {
+        $recorded = [];
+    }
+    if (in_array(WCPA_VERSION, $recorded, true)) {
+        return;
+    }
+    $recorded[] = WCPA_VERSION;
+    update_option('wcpa_settings_cache_versions', $recorded, false);
+}
+
+/**
+ * Clears the settings cache `wcpa_settings_<version>[_<lang>]` (CACHE-003).
+ *
+ * | Caller                              | $allVersions | Without object cache                     | With object cache                                  |
+ * | ----------------------------------- | ------------ | ---------------------------------------- | -------------------------------------------------- |
+ * | Settings save, design save          | true         | prefix delete of every entry             | every known version's entry, plain and per language |
+ * | refreshCaches (form, product saves) | false        | prefix delete of every entry (as before) | the running version's entry, plain and per language |
+ *
+ * Before CACHE-003, a settings save with an object cache cleared only the running version's entries,
+ * and a design save cleared only the running version's plain entry (with or without an object cache),
+ * so on a multilingual site a design change reached the storefront only after a form or settings save.
+ *
+ * @param bool $allVersions Also clear other plugin versions' entries (settings and design saves).
+ */
+function deleteSettingsCaches($allVersions = false)
+{
+    delete_transient('wcpa_settings_' . WCPA_VERSION);
+    if (!wp_using_ext_object_cache()) {
+        bulkDeleteTransients('wcpa_settings_');
+        return;
+    }
+    $ml = new ML();
+    $langs = $ml->is_active() ? $ml->langList() : [];
+    foreach ($allVersions ? settingsCacheVersions() : [WCPA_VERSION] as $version) {
+        delete_transient('wcpa_settings_' . $version);
+        foreach ($langs as $l) {
+            delete_transient('wcpa_settings_' . $version . '_' . $l);
         }
     }
 }

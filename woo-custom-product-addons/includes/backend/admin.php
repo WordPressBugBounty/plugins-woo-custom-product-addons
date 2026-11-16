@@ -47,7 +47,9 @@ class Admin
         $plugin = plugin_basename(WCPA_FILE);
         add_filter("plugin_action_links_$plugin", array($this, 'add_settings_link'));
 
-        add_action('admin_footer', array($this, 'wcpa_deactivation_form'));
+        // Deactivation feedback popup and newsletter notice (Acowebs feedback platform, FEAT-021). Registered
+        // outside the WooCommerce check, as the old survey was: the popup also works with WooCommerce inactive.
+        Feedback::register();
         add_action('admin_footer', array($this, 'popup_container'));
     }
 
@@ -55,57 +57,6 @@ class Admin
     {
         echo '<div id="wcpa_order_popup"></div>';
     }
-
-    /*
-    * Deactivation form
-    */
-    public function wcpa_deactivation_form() {
-        $currentScreen = get_current_screen();
-        $screenID = $currentScreen->id;
-        if ( $screenID == 'plugins' ) {
-            $view = '<div id="wcpa-aco-survey-form-wrap"><div id="wcpa-aco-survey-form">
-            <p>If you have a moment, please let us know why you are deactivating this plugin. All submissions are anonymous and we only use this feedback for improving our plugin.</p>
-            <form method="POST">
-                <input name="Plugin" type="hidden" placeholder="Plugin" value="'.WCPA_TOKEN.'" required>
-                <input name="Date" type="hidden" placeholder="Date" value="'.date("m/d/Y").'" required>
-                <input name="Website" type="hidden" placeholder="Website" value="'.get_site_url().'" required>
-                <input name="Title" type="hidden" placeholder="Title" value="'.get_bloginfo( 'name' ).'" required>
-                <input name="Version" type="hidden" placeholder="Version" value="'.WCPA_VERSION.'" required>
-                <input type="radio" id="wcpa-better" name="Reason" value="I found a better plugin">
-                <label for="wcpa-better">I found a better plugin</label><br>
-                <input type="radio" id="wcpa-temporarily" name="Reason" value="I\'m only deactivating temporarily">
-                <label for="wcpa-temporarily">I\'m only deactivating temporarily</label><br>
-                <input type="radio" id="wcpa-notneeded" name="Reason" value="I no longer need the plugin">
-                <label for="wcpa-notneeded">I no longer need the plugin</label><br>
-                <input type="radio" id="wcpa-short" name="Reason" value="I only needed the plugin for a short period">
-                <label for="wcpa-short">I only needed the plugin for a short period</label><br>
-                <input type="radio" id="wcpa-upgrade" name="Reason" value="Upgrading to PRO version">
-                <label for="wcpa-upgrade">Upgrading to PRO version</label><br>
-                <input type="radio" id="wcpa-requirement" name="Reason" value="Plugin doesn\'t meets my requirement">
-                <label for="wcpa-requirement">Plugin doesn\'t meets my requirement</label><br>
-                <input type="radio" id="wcpa-broke" name="Reason" value="Plugin broke my site">
-                <label for="wcpa-broke">Plugin broke my site</label><br>
-                <input type="radio" id="wcpa-stopped" name="Reason" value="Plugin suddenly stopped working">
-                <label for="wcpa-stopped">Plugin suddenly stopped working</label><br>
-                <input type="radio" id="wcpa-bug" name="Reason" value="I found a bug">
-                <label for="wcpa-bug">I found a bug</label><br>
-                <input type="radio" id="wcpa-other" name="Reason" value="Other">
-                <label for="wcpa-other">Other</label><br>
-                <p id="wcpa-aco-error"></p>
-                <div class="wcpa-aco-comments" style="display:none;">
-                    <textarea type="text" name="Comments" placeholder="Please specify" rows="2"></textarea>
-                    <p>For support queries <a href="https://support.acowebs.com/portal/en/newticket?departmentId=361181000000006907&layoutId=361181000000074011" target="_blank">Submit Ticket</a></p>
-                </div>
-                <button type="submit" class="aco_button" id="wcpa-aco_deactivate">Submit & Deactivate</button>
-                <a href="#" class="aco_button" id="wcpa-aco_cancel">Cancel</a>
-                <a href="#" class="aco_button" id="wcpa-aco_skip">Skip & Deactivate</a>
-            </form></div></div>';
-            echo $view;
-        } ?>
-        <style>
-            #wcpa-aco-survey-form-wrap{ display: none;position: absolute;top: 0px;bottom: 0px;left: 0px;right: 0px;z-index: 10000;background: rgb(0 0 0 / 63%); } #wcpa-aco-survey-form{ display:none;margin-top: 15px;position: fixed;text-align: left;width: 40%;max-width: 600px;min-width:350px;z-index: 100;top: 50%;left: 50%;transform: translate(-50%, -50%);background: rgba(255,255,255,1);padding: 35px;border-radius: 6px;border: 2px solid #fff;font-size: 14px;line-height: 24px;outline: none;}#wcpa-aco-survey-form p{font-size: 14px;line-height: 24px;padding-bottom:20px;margin: 0;} #wcpa-aco-survey-form .aco_button { margin: 25px 5px 10px 0px; height: 42px;border-radius: 6px;background-color: #1eb5ff;border: none;padding: 0 36px;color: #fff;outline: none;cursor: pointer;font-size: 15px;font-weight: 600;letter-spacing: 0.1px;color: #ffffff;margin-left: 0 !important;position: relative;display: inline-block;text-decoration: none;line-height: 42px;} #wcpa-aco-survey-form .aco_button#wcpa-aco_deactivate{background: #fff;border: solid 1px rgba(88,115,149,0.5);color: #a3b2c5;} #wcpa-aco-survey-form .aco_button#wcpa-aco_skip{background: #fff;border: none;color: #a3b2c5;padding: 0px 15px;float:right;}#wcpa-aco-survey-form .wcpa-aco-comments{position: relative;}#wcpa-aco-survey-form .wcpa-aco-comments p{ position: absolute; top: -24px; right: 0px; font-size: 14px; padding: 0px; margin: 0px;} #wcpa-aco-survey-form .wcpa-aco-comments p a{text-decoration:none;}#wcpa-aco-survey-form .wcpa-aco-comments textarea{background: #fff;border: solid 1px rgba(88,115,149,0.5);width: 100%;line-height: 30px;resize:none;margin: 10px 0 0 0;} #wcpa-aco-survey-form p#wcpa-aco-error{margin-top: 10px;padding: 0px;font-size: 13px;color: #ea6464;}
-        </style>
-    <?php }
 
     public function add_settings_link($links)
     {
@@ -151,12 +102,6 @@ class Admin
 
         $screen = get_current_screen();
 
-        if ( $screen->id == 'plugins' ) {
-            wp_enqueue_script($this->token . '-survey',
-                esc_url($this->assets_url) . 'deactivation-survey.js', array('jquery'),
-                $this->version, true);
-
-        }
         $ml = new ML();
         if (in_array($screen->id, $this->hook_suffix)) {
 

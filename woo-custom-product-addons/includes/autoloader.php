@@ -118,9 +118,11 @@ class Autoloader {
 			'Settings' => 'includes/backend/settings.php',
 			'Form' => 'includes/form.php',
 			'Admin' => 'includes/backend/admin.php',
+			'Feedback' => 'includes/backend/feedback.php',
 
 			'BackendApi' => 'includes/backend/api.php',
 			'ML' => 'includes/compatibility/ml.php',
+			'Omnisend' => 'includes/compatibility/omnisend.php',
 
             'Cron'=>'includes/cron.php',
             'Render'=>'includes/render/render.php',

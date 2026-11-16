@@ -34,7 +34,7 @@ class Designs
         update_option(self::$keyDesigns, $designs);
         update_option(self::$keyActiveDesign, $active);
 
-        delete_transient('wcpa_settings_'.WCPA_VERSION);
+        deleteSettingsCaches(true); // CACHE-003: every version and language entry (was this version's plain entry only)
 
         return true;
     }

@@ -20,6 +20,10 @@ class Process
     private $quantity = 1;
     private $token;
     private $orderAgainData = false;
+    /** @var object|false ORD-008: the field validateFormData() refused last (false when it passed). */
+    private $failedField = false;
+    /** @var int|false ORD-008: product ID of the "Order again" line this handler just refused; reset per line and after the reorder. */
+    private $orderAgainRefused = false;
     /**
      * @var mixed
      */
@@ -30,9 +34,17 @@ class Process
      */
     private $parentProduct = false;
 
-    public function __construct()
+    /**
+     * @param bool $hooks Register the WooCommerce hooks. Front creates the one instance that does. COMPAT-007 creates
+     *                    separate, hook-free instances to read and validate the answers of an Omnisend recovery-link
+     *                    line with their own state (Omnisend::recover_cart_item_data), as Pro's Process(false) does.
+     */
+    public function __construct($hooks = true)
     {
         $this->token = WCPA_TOKEN;
+        if (!$hooks) {
+            return;
+        }
         add_filter('woocommerce_add_cart_item_data', array($this, 'add_cart_item_data'), 10, 4);
         add_filter('wcpa_add_cart_item_data', array($this, 'add_cart_item_data'), 10, 4);
         add_filter('woocommerce_add_to_cart_validation', array($this, 'add_to_cart_validation'), 10, 4);
@@ -41,6 +53,8 @@ class Process
         add_action('wc_ajax_wcpa_ajax_add_to_cart', array($this, 'ajax_add_to_cart'));
 
         add_filter('woocommerce_order_again_cart_item_data', array($this, 'order_again_cart_item_data'), 50, 3);
+        // ORD-008: forget the refused line once WooCommerce has re-added the whole order
+        add_action('woocommerce_ordered_again', array($this, 'reset_order_again_refusal'));
 
         add_filter('pllwc_add_cart_item_data', array($this, 'pllwc_cart_item_data'), 10, 2); // polylang
     }
@@ -65,22 +79,11 @@ class Process
         $variation_id = (int)$item->get_variation_id();
         $quantity = $item->get_quantity();
 
+        $this->orderAgainRefused = false;
         $passed = $this->add_to_cart_validation(true,
             $product_id, $quantity, $variation_id, true);
         if (!$passed) {
-// set error
-            $product = $item->get_product();
-            $name = '';
-            if ($product) {
-                $name = $product->get_name();
-            }
-            wc_add_notice(sprintf(
-            /* translators: %s Product Name */
-                __('Addon options of product %s has been changed, Cannot proceed with older data. 
-            You can go to product page and fill the addon fields again inorder to make new order',
-                    'woo-custom-product-addons'),
-                $name),
-                'error');
+            $this->order_again_refused_notice($item, $product_id);
 
             return $cart_item_data;
         }
@@ -91,6 +94,50 @@ class Process
         remove_filter('woocommerce_add_to_cart_validation', array($this, 'add_to_cart_validation'));
 
         return $cart_item_data;
+    }
+
+    /**
+     * ORD-008: the notice for an "Order again" line whose add-on values no longer pass the product's current form.
+     *
+     * Until 3.1.9 every refusal added "Addon options of product %s has been changed, Cannot proceed with older data
+     * ...", also when nothing had changed, and never said which field (ticket 37105, the same code as Pro). The
+     * validation notice ("Field X is required.") still says why; this notice names the field and what to do.
+     * WooCommerce then validates the refused line itself a second time (WC_Cart_Session::populate_cart_from_order),
+     * which repeated the validation notice; $orderAgainRefused makes that second call refuse the same line without
+     * reading it again (add_to_cart_validation).
+     *
+     * @param \WC_Order_Item_Product $item
+     * @param int $product_id
+     */
+    private function order_again_refused_notice($item, $product_id)
+    {
+        $product = $item->get_product();
+        $name = $product ? $product->get_name() : '';
+        $field = $this->failedField;
+        if ($field !== false) {
+            $label = (isset($field->label) && $field->label !== '') ? $field->label : (isset($field->elementId) ? $field->elementId : '');
+            $message = sprintf(
+            /* translators: 1: product name, 2: add-on field label */
+                __('%1$s was not added to your cart again: the earlier choice for "%2$s" cannot be used with the current product options. Please choose it again on the product page.',
+                    'woo-custom-product-addons'),
+                $name, $label);
+        } else {
+            $message = sprintf(
+            /* translators: %s: product name */
+                __('%s was not added to your cart again: its earlier add-on options cannot be used with the current product options. Please choose them again on the product page.',
+                    'woo-custom-product-addons'),
+                $name);
+        }
+        wc_add_notice($message, 'error');
+        $this->orderAgainRefused = (int)$product_id;
+    }
+
+    /**
+     * ORD-008: on woocommerce_ordered_again, after WooCommerce re-added every line of the order.
+     */
+    public function reset_order_again_refusal()
+    {
+        $this->orderAgainRefused = false;
     }
 
     /**
@@ -117,6 +164,10 @@ class Process
             $product_id = $pid;
         }
 
+        /** ORD-008: WooCommerce's own second check of an "Order again" line this handler refused: same answer, no repeated notices */
+        if ($passed === true && $this->orderAgainData !== false && $this->orderAgainRefused !== false && $this->orderAgainRefused === (int)$product_id) {
+            return false;
+        }
 
         /**
          * ignore checking if $passed is false, as it can be validation error thrown by other plugins or woocommerce itself
@@ -337,6 +388,7 @@ class Process
     public function validateFormData()
     {
         $validation = new FormValidation($this->product, $this->quantity);
+        $this->failedField = false; // ORD-008: named in the "Order again" notice
         if ($this->fields) {
             foreach ($this->fields as $sectionKey => $section) {
                 if ($this->form_data[$sectionKey]['extra']->clStatus === 'hidden') {
@@ -349,6 +401,7 @@ class Process
                         if (!isset($this->form_data[$sectionKey]['fields'][$rowIndex][$colIndex])) {
                             if (isset($field->required) && $field->required) {
                                 $validation->validate($field, ['value' => false]); // calling this to set error message
+                                $this->failedField = $field;
 
                                 return false;
                             }
@@ -368,6 +421,7 @@ class Process
                         }
                         $status = $validation->validate($field, $dField);
                         if ($status === false) {
+                            $this->failedField = $field;
                             return false;
                         }
                     }

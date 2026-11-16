@@ -58,6 +58,51 @@ class CLogic
         }
     }
 
+    /** Joins a stored relation may use between two condition results (SEC-008, as Pro 5.8.3). */
+    const JOIN_OPERATORS = ['and', 'or', '&&', '||'];
+
+    /**
+     * Whether a stored relation operator is a known join (any case, spaces around it ignored).
+     *
+     * @param mixed $operator stored value
+     *
+     * @return bool
+     */
+    public static function isJoinOperator($operator)
+    {
+        return is_string($operator) && in_array(strtolower(trim($operator)), self::JOIN_OPERATORS, true);
+    }
+
+    /**
+     * The join to write between two condition results.
+     *
+     * The evaluated expression may contain only rule results, brackets and these words, so a stored value is
+     * used only when it is a known join, kept as written (trimmed). Anything else (another word, an empty
+     * string, null, `false`) joins as `and`, the editor's default join. After the last rule or group the join
+     * is cut off before evaluation, so it has no effect there. Before SEC-008 the first known word found
+     * anywhere inside the value was used (`XOR` became `OR`), and a value without one left the join empty,
+     * which stopped the page with a PHP ParseError; editor-saved forms only hold known joins or `false` at
+     * the end, so they evaluate as before.
+     *
+     * | Stored        | Joins as |
+     * | ------------- | -------- |
+     * | `and`, `AND`  | as written |
+     * | ` or `, `Or`  | `or`, `Or` |
+     * | `&&`, `\|\|`  | as written |
+     * | `XOR`, `android`, `''`, null, false | `and` |
+     *
+     * The storefront preview applies the same rule (`wcpaJoinOperator` in assets/js/front-end.js and
+     * assets/shared.js).
+     *
+     * @param mixed $operator stored value
+     *
+     * @return string
+     */
+    public static function joinOperator($operator)
+    {
+        return self::isJoinOperator($operator) ? trim($operator) : 'and';
+    }
+
     /**
      * Process conditional logic with relations provided
      *
@@ -81,29 +126,14 @@ class CLogic
                     } else {
                         $eval_str .= ' false ';
                     }
-                    if ($rule->operator !== false) {
-                        if (preg_match('/(and|or|&&|\|\|)/i', $rule->operator, $matches)) {
-                            $rule->operator = $matches[0];
-                        } else {
-                            $rule->operator = '';
-                        }
-                    }
-                    $eval_str .= ') ' . (($rule->operator !== false) ? $rule->operator : '') . ' ';
+                    $eval_str .= ') ' . self::joinOperator(isset($rule->operator) ? $rule->operator : false) . ' ';
                 }
 
                 if (count($relation->rules) > 0) {
                     preg_match_all('/\(.*\)/', $eval_str, $match);
                     $eval_str = $match[0][0] . ' ';
                 }
-                if ($relation->operator !== false) {
-                    if (preg_match('/(and|or|&&|\|\|)/i', $relation->operator, $matches)) {
-                        $relation->operator = $matches[0];
-                    } else {
-                        $relation->operator = '';
-                    }
-                }
-
-                $eval_str .= ') ' . (($relation->operator !== false) ? $relation->operator : '') . ' ';
+                $eval_str .= ') ' . self::joinOperator(isset($relation->operator) ? $relation->operator : false) . ' ';
             }
         }
         if (count($relations) > 0) {

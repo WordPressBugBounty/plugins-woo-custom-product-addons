@@ -1,0 +1,99 @@
+/*
+ * WooCommerce Custom Product Addons Free: its own look for the Acowebs feedback popup and newsletter notice
+ * (FEAT-021). Loaded after the shared kit stylesheet (handle acowebs-feedback-ui) and scoped to Free's own
+ * popup and notice ids, so other Acowebs plugins' popups keep the kit's look.
+ *
+ * Owner, 2026-11-11: "also can we match the ui styles that of our plugin". The values come from Free's admin
+ * app (app/src/variables.scss and its components):
+ *
+ * | Kit token / element      | Free's admin app                               | Here                          |
+ * | ------------------------ | ---------------------------------------------- | ----------------------------- |
+ * | Text, headings           | $primaryColor #172A68; body rgba(23,42,104,.75) | #172a68; muted #515f8e        |
+ * | Accent (selected reason) | $secondaryColor #f25a87 (buttons, tabs)        | #f25a87 (3.2:1 as a border)   |
+ * | Primary button           | pink fill, white text, radius 6px, 500 14px    | #d6336c: same pink, darker so |
+ * |                          |                                                | white text passes AA (4.6:1;  |
+ * |                          |                                                | #f25a87 gives 3.2:1)          |
+ * | Checkbox (ticked)        | #0b56c5 (CheckBox component)                   | #0b56c5                       |
+ * | Font                     | $primaryFont 'Roboto', sans-serif (not loaded  | the same declaration, so it   |
+ * |                          | by the plugin: the system's Roboto or sans)    | renders as Free's screens do  |
+ * | Radius                   | buttons 6px, dialogs 8px (ConfirmAlert)        | 6px / 8px                     |
+ * | Overlay                  | rgba(0,0,0,.3) (ConfirmAlert)                  | rgba(0,0,0,.3)                |
+ */
+
+#acofb-wcpa-deactivation.acofb,
+#acofb-wcpa-newsletter.acofb {
+  --acofb-primary: #f25a87;
+  --acofb-button: #d6336c;
+  --acofb-button-hover: #c8285f;
+  --acofb-link: #c8285f;
+  --acofb-navy: #172a68;
+  --acofb-indigo: #172a68;
+  --acofb-muted: #515f8e;
+  --acofb-ink-soft: #172a68;
+  --acofb-border: #e1e2e6;
+  --acofb-tint: #f9f9fb;
+  --acofb-panel: #fef4f7;
+  --acofb-panel-border: #f9c6d6;
+  --acofb-overlay: rgba(0, 0, 0, 0.3);
+  --acofb-radius: 6px;
+  --acofb-radius-card: 8px;
+  --acofb-shadow: 0 1px 4px rgba(12, 14, 51, 0.08);
+  --acofb-shadow-modal: 0 4px 31px rgba(12, 14, 51, 0.12);
+  --acofb-ring: 0 0 0 3px rgba(242, 90, 135, 0.35);
+  --acofb-font: "Roboto", sans-serif;
+}
+
+/* Buttons: Free's weight and size; text buttons turn pink on hover like Free's "plain" buttons. */
+#acofb-wcpa-deactivation .acofb-btn,
+#acofb-wcpa-newsletter .acofb-btn {
+  font-weight: 500;
+  font-size: 14px;
+}
+#acofb-wcpa-deactivation .acofb-btn--text:hover,
+#acofb-wcpa-newsletter .acofb-btn--text:hover {
+  color: #c8285f;
+}
+
+/* wp-admin's forms.css gives a focused radio or checkbox a blue border (input[type=radio]:focus); keep the
+   control's own outline while unticked: the card or the ring shows the focus. */
+#acofb-wcpa-deactivation .acofb-radio:not(:checked):focus,
+#acofb-wcpa-deactivation .acofb-check:not(:checked):focus {
+  border-color: var(--acofb-control-border);
+}
+/* Its blue 1px ring too, when focus comes from a click or from script (the popup focuses the first
+   reason on open); keyboard focus (:focus-visible) keeps the kit's ring. */
+#acofb-wcpa-deactivation .acofb-radio:focus:not(:focus-visible),
+#acofb-wcpa-deactivation .acofb-check:focus:not(:focus-visible) {
+  box-shadow: none;
+}
+#acofb-wcpa-deactivation .acofb-radio:checked:focus:not(:focus-visible) {
+  box-shadow: inset 0 0 0 3.5px var(--acofb-surface);
+}
+
+/* Ticked checkbox in Free's checkbox blue. */
+#acofb-wcpa-deactivation .acofb-check:checked {
+  border-color: #0b56c5;
+  background-color: #0b56c5;
+}
+
+/* Notice: Free's pink stripe instead of the Acowebs gradient; one pink chip style. */
+#acofb-wcpa-newsletter.acofb-notice::before {
+  background: #f25a87;
+}
+#acofb-wcpa-newsletter .acofb-eyebrow {
+  color: #c8285f;
+}
+#acofb-wcpa-newsletter .acofb-chip {
+  background: rgba(242, 90, 135, 0.1);
+}
+#acofb-wcpa-newsletter .acofb-chip::before {
+  background: #f25a87;
+}
+
+/* Support-forum line under the details box of two reasons (Free's addition): stacked below the box. */
+#acofb-wcpa-deactivation .acofb-details.wcpa-acofb-has-help {
+  flex-direction: column;
+}
+#acofb-wcpa-deactivation .wcpa-acofb-help {
+  margin: 6px 0 0;
+}

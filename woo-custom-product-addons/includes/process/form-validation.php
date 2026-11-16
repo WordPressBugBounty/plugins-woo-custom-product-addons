@@ -50,6 +50,15 @@ class FormValidation
             if (is_string($dField['value']) && trim($dField['value']) == "") {
                 $status = false;
             }
+            /**
+             * VAL-009: a choice field (select, radio group, checkbox group) reads as an empty array when its value
+             * matches no option: posted blank, an unknown value, or "Order again" after the merchant removed the
+             * option (ReadForm::readOptionsField keeps only matching values). Up to 3.1.9 that empty array passed
+             * here, so the line was added with the required field empty. Pro rejects it the same way.
+             */
+            if (is_array($dField['value']) && empty($dField['value'])) {
+                $status = false;
+            }
             if ($status === false) {
                 $this->add_cart_error(sprintf($this->errorMessages['requiredError'], $field->label));
 

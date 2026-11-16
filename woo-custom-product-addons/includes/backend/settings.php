@@ -68,6 +68,8 @@ class Settings
             'consider_product_tax_conf' => ['boolean', true],
             'override_cart_meta_template' => ['boolean', true],
             'ajax_add_to_cart' => ['boolean', false],
+            // COMPAT-003 E: off keeps PayPal Payments' product button as it is (DEC-039)
+            'hide_paypal_payments_buttons' => ['boolean', false],
             'append_global_form' => ['text', 'at_start'],// at_end
             'enqueue_cs_js_all_pages' =>  ['boolean', true],
             'item_meta_format' =>  ['text', '{label} | {value}'] ,// {label} {value}
@@ -188,7 +190,7 @@ class Settings
             update_option(self::$key, $settings);
         }
 
-        delete_transient('wcpa_settings_' . WCPA_VERSION);
+        deleteSettingsCaches(true); // CACHE-003: every version's entry, also with an object cache
         refreshCaches();
 
         return true;

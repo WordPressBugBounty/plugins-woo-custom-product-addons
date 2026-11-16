@@ -5,7 +5,7 @@ Requires at least: 3.9
 Tested up to: 7.1
 Requires PHP: 7.2
 License: GPLv2 or later
-Stable tag: 3.1.9
+Stable tag: 3.1.10
 
 
 WooCommerce Product Addons Add custom fields to your WooCommerce product page. With an easy-to-use Custom Form Builder.
@@ -154,6 +154,15 @@ From engraving text to selecting print colors, WooCommerce product options handl
 🔹 [Twitter](https://twitter.com/acowebs)
 🔹 [YouTube](https://www.youtube.com/channel/UCXoOjbKiXjDocNMe8qd3WHw)
 
+== Privacy ==
+
+The plugin sends nothing to Acowebs on its own. Data leaves your site only when an administrator clicks one of these two buttons:
+
+* **Send & deactivate** in the optional feedback popup shown when you deactivate the plugin on the Plugins screen. It sends the reason you picked and the text you typed, your site address, name and language, the plugin version and your WordPress, WooCommerce and PHP versions. Your name and email are included only if you tick "Acowebs can contact me about this feedback" (unticked by default). "Skip & deactivate" sends nothing.
+* **Subscribe** in the Acowebs newsletter card on the plugin's own admin page (shown once, 14 days after installing or updating, and gone for good once dismissed). It sends the email address you entered, the optional first name and phone number, and your site address and name.
+
+Both go to the Acowebs feedback service at https://audience.acowebs.com, which records the sender's country but not the IP address. Acowebs uses the feedback to improve the plugin and the newsletter address only to send the newsletter; you can unsubscribe at any time or ask Acowebs to delete your data. See the [Acowebs privacy policy](https://acowebs.com/privacy-policy/) and [terms and conditions](https://acowebs.com/terms/).
+
 == Installation ==
 
 Installing "WooCommerce Product Addons" can be done either by searching for "WooCommerce Product Addons ( Custom fields to add extra product options )" via the "Plugins > Add New" screen in your WordPress dashboard, or by using the following steps:
@@ -203,6 +212,24 @@ Yes, the Woocommerce custom fields allow file uploads,enabling customers to uplo
 To calculate the price with the Woocommerce product addons follow these simple steps in the [video](https://youtu.be/a1Ld-PbULNk?feature=shared) ( only available in pro version. get[WooCommerce custom product addons pro](https://acowebs.com/woo-custom-product-addons/) )
 
 == Changelog ==
+= 3.1.10 =
+* Security - Hardening of conditional logic evaluation
+* Feature - Optional feedback popup when you deactivate the plugin, and a one-time Acowebs newsletter card on the plugin's admin page; nothing is sent unless you click (see Privacy)
+* Feature - Optional setting to hide the PayPal Payments product-page button on products with a required or file field
+* Improvement - The form editor is usable on screens narrower than 1280 px
+* Improvement - Admin: one clear Save button, "Purge Form Cache" moved to Settings, consistent screen titles and wording
+* Improvement - The "Order again" notice names the field that could not be restored
+* Fix - Field error messages no longer vanish right after they appear; URL fields accept addresses typed without https
+* Fix - Text typed, pasted or autofilled just before Add to cart is read and checked
+* Fix - A drop-down filled from the page link (?field=value) shows and submits that option
+* Fix - A required choice field refuses a value that matches none of its options
+* Fix - Dates show the day the customer picked on the product page, cart, order and admin, whatever the site's or browser's time zone
+* Fix - A theme's sticky or second Add to cart button submits the product form with its add-ons and required checks
+* Fix - Saving settings or a design takes effect straight away on sites with a persistent object cache, and is not lost after an update or rollback
+* Fix - WPML: form translations record the right source language
+* Compatibility - Drop-downs restyled by the theme with Select2 (Salient and similar) update the form and clear the required-field error
+* Compatibility - Omnisend abandoned-cart links keep the add-on choices
+* Accessibility - A failed Add to cart moves focus to the first invalid field without opening an empty date's calendar over its error; storefront screen-reader texts are translatable
 = 3.1.9 =
 * Security - Escape and restrict the field type shown in the cart
 * Fix - WPML: the language set before the add-on form lookup is restored afterwards

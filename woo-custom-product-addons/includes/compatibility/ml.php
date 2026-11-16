@@ -235,7 +235,55 @@ class ML
     }
 
     /**
+     * The source language WPML should record for $postId in translation group $trid
+     * (`source_language_code` of `wpml_set_element_language_details`): the language of the
+     * group's original element, or null when $postId is that original, has its language, or
+     * there is no group yet.
+     *
+     * Before this change set_post_lang passed the post's own language here for every
+     * non-default language, also for the swapped post (ML-005). WPML 5.1.0 turns a source equal
+     * to the language into null and then reads the source from the group itself
+     * (WPML_Set_Language::set and change_translation_of), so no wrong row was observed with Pro
+     * on pro-ml (2026-10-27). Whether older WPML versions did the same is unknown; this value is
+     * right for either. Rows stored earlier are not repaired (owner decision D12, DEC-080).
+     *
+     * | Call (base form in en-us)              | Before       | Now   |
+     * | -------------------------------------- | ------------ | ----- |
+     * | French translation created or saved    | "fr"         | en-us |
+     * | Base form saved (en-us)                | null         | null  |
+     * | Base form created in fr (its own group)| "fr"         | null  |
+     *
+     * @param  int  $postId
+     * @param  int|null  $trid  Group the post is placed in.
+     * @param  string  $lang  Language being set for $postId.
+     * @param  string  $element_type  For example `post_wcpa_pt_forms`.
+     *
+     * @return string|null
+     */
+    private function wpml_source_language($postId, $trid, $lang, $element_type)
+    {
+        if ( ! $trid) {
+            return null;
+        }
+        $translations = apply_filters('wpml_get_element_translations', null, $trid, $element_type);
+        foreach ((array) $translations as $t) {
+            if ( ! empty($t->original)) {
+                if ((int) $t->element_id === (int) $postId || $t->language_code === $lang) {
+                    return null;
+                }
+
+                return $t->language_code;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * change/set post language
+     *
+     * WPML: places the post in the group of $base_lang_id (or its own group) with language
+     * $lang and the group's original language as its source (wpml_source_language, ML-005).
      *
      * @param $postId
      * @param $lang
@@ -289,13 +337,12 @@ class ML
 
             $swapId = $this->getTransById($postId, $lang); // get the post which have already set this lang
 
-            $source_language_code = $this->default_language();
             $set_language_args    = array(
                 'element_id'           => $postId,
                 'element_type'         => 'post_'.$post_type,
                 'trid'                 => $trid,
                 'language_code'        => $lang,
-                'source_language_code' => ($source_language_code == $lang) ? null : $lang
+                'source_language_code' => $this->wpml_source_language($postId, $trid, $lang, 'post_'.$post_type)
             );
             do_action('wpml_set_element_language_details', $set_language_args);
             if ($swapId) {
@@ -304,7 +351,7 @@ class ML
                     'element_type'         => 'post_'.$post_type,
                     'trid'                 => $trid,
                     'language_code'        => $postCurrentLang,
-                    'source_language_code' => ($source_language_code == $postCurrentLang) ? null : $postCurrentLang
+                    'source_language_code' => $this->wpml_source_language($swapId, $trid, $postCurrentLang, 'post_'.$post_type)
                 );
                 do_action('wpml_set_element_language_details', $set_language_args);
             }

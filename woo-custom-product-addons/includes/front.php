@@ -29,7 +29,8 @@ class Front
         add_filter('post_class', array($this, 'product_class'), 10, 3);
 
 
-        // add_filter('woocommerce_paypal_payments_product_supports_payment_request_button', array($this, 'show_checkout_button'), 10, 2);
+        // PayPal Payments' product-page button: hidden only when the opt-in setting is on (COMPAT-003 E).
+        add_filter('woocommerce_paypal_payments_product_supports_payment_request_button', array($this, 'paypal_payments_product_button'), 10, 2);
 
         add_filter('wc_stripe_hide_payment_request_on_product_page', array($this, 'remove_checkout_button'), 10, 2);
 
@@ -47,6 +48,7 @@ class Front
         new Process();
         new Cart();
         new Order();
+        new Omnisend(); // COMPAT-007: the Omnisend abandoned-cart link keeps the add-on answers
 
     }
 
@@ -147,6 +149,66 @@ class Front
         }
 
         return $allow;
+    }
+
+    /**
+     * PayPal Payments' product-page button (COMPAT-003 E, DEC-080 D8).
+     *
+     * The button copies the product form's fields into the request but never runs
+     * woocommerce_add_to_cart_validation, so a shopper can pay with a required add-on field left
+     * empty. With the setting "Hide PayPal Payments buttons on products with required fields" on,
+     * products whose form has a required field get no PayPal Payments product button; every other
+     * product keeps it. The setting is off by default, so stores keep today's button (DEC-039).
+     * Free has no file field; the file check matches Pro's rule.
+     *
+     * @param bool  $enable  PayPal Payments' decision so far
+     * @param mixed $product The WC_Product (or product ID) PayPal Payments asks about
+     * @return bool
+     */
+    public function paypal_payments_product_button($enable, $product)
+    {
+        if (!$enable || !Config::get_config('hide_paypal_payments_buttons')) {
+            return $enable;
+        }
+        $id = 0;
+        if (is_object($product) && method_exists($product, 'get_id')) {
+            // a variation's form is its parent product's form
+            $id = method_exists($product, 'get_parent_id') && $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
+        } elseif (is_numeric($product)) {
+            $id = (int)$product;
+        }
+
+        return ($id && $this->has_required_or_file_field($id)) ? false : $enable;
+    }
+
+    /**
+     * Whether any form of the product has a required field or a file field (conditional fields included:
+     * the button cannot know which fields the shopper will see).
+     *
+     * @param int $product_id Parent product ID
+     * @return bool
+     */
+    private function has_required_or_file_field($product_id)
+    {
+        $wcpaProduct = new Product();
+        $data = $wcpaProduct->get_fields($product_id);
+        if (empty($data['fields'])) {
+            return false;
+        }
+        foreach ($data['fields'] as $section) {
+            if (!isset($section->fields) || !is_array($section->fields)) {
+                continue;
+            }
+            foreach ($section->fields as $row) {
+                foreach ((array)$row as $field) {
+                    if (!empty($field->required) || (isset($field->type) && $field->type === 'file')) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     public function show_checkout_button($allow, $product)
@@ -326,6 +388,13 @@ class Front
 
             'ajax_add_to_cart' => Config::get_config('ajax_add_to_cart'),
 
+            // Screen-reader texts of the storefront form (A11Y-006, owner decision DEC-058 D2): plain
+            // translations in this plugin's text domain, not settings. The bundle reads them through
+            // functions.js i18n() and falls back to the same English when a key is missing. Until
+            // 3.1.9 "(required)" was hard-coded English in the bundle.
+            'strings' => array(
+                'required_sr' => __('(required)', 'woo-custom-product-addons'),
+            ),
         );
         $wcpa_global_vars['i18n_view_cart'] = esc_attr__('View cart', 'woocommerce');
 

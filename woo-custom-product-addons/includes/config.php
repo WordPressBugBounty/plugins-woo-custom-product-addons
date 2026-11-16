@@ -42,6 +42,7 @@ class Config
                 $values                  = $settings->get_settings();
                 $values['active_design'] = $design->get_active_design();
                 set_transient($cacheKey, $values);
+                recordSettingsCacheVersion(); // CACHE-003: lets a later settings save clear this version's entry
             }
             self::$values = $values;
         }
