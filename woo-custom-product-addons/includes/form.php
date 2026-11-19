@@ -125,6 +125,11 @@ class Form
         $posts = new WP_Query($args);
         remove_filter('pre_get_posts', array($this, 'suppress_filters'), 999);
 
+        // ADM-007 (ADM-002 item 4 in Free): every row's nameIssues shares one co-assignment query and one name cache.
+        $this->coAssigned = null;
+        $this->namesOf = [];
+        $this->nameIssuesBatch = true;
+
         $forms = [];
         if ($posts->have_posts()): while ($posts->have_posts()) {
             $posts->the_post();
@@ -138,6 +143,7 @@ class Form
                 'post_parent' => wp_get_post_parent_id(get_the_ID()),
                 'author' => get_the_author(),
                 'products'  => $products_list['products'],
+                'nameIssues' => $tab == 'trash' ? self::empty_name_issues() : $this->field_name_issues(get_the_ID()),
             ];
             if ($this->ml->is_active()) {
                 $p['translations'] = $this->ml->get_post_translations_links(get_the_ID());
@@ -176,6 +182,7 @@ class Form
                     'post_parent' => wp_get_post_parent_id(),
                     'author' => get_the_author(),
                     'products'  => $products_list['products'],
+                    'nameIssues' => $tab == 'trash' ? self::empty_name_issues() : $this->field_name_issues(get_the_ID()),
                 ];
                 if ($this->ml->is_active()) {
                     $p_by_id['translations'] = $this->ml->get_post_translations_links(get_the_ID());
@@ -185,6 +192,8 @@ class Form
             } endif;
             wp_reset_postdata();
         }
+
+        $this->nameIssuesBatch = false;
 
         return ['forms' => $forms, 'totalForms' => $posts->found_posts, 'totalPages' => $posts->max_num_pages];
     }
@@ -914,13 +923,21 @@ class Form
     }
 
     /**
-     * @return string
+     * One saved setting of a form, or $default.
+     *
+     * Free keeps no per-form settings store (Pro's FormSettings store is not
+     * in Free), so this always returns $default. No plugin code calls it (checked 2026-11-16); it
+     * stays for outside callers. ML-008: it read the constant `WCPA_META_SETTINGS_KEY`, which no
+     * version defined: an Error on PHP 8, and on PHP 7 a meta key of that name, so $default too.
+     *
+     * @param int $pos_id Form ID.
+     * @param string $key Setting key.
+     * @param mixed $default Returned value.
+     * @return mixed
      */
     function get_post_meta($pos_id, $key, $default = false)
     {
-        $settings = get_post_meta($pos_id, WCPA_META_SETTINGS_KEY, true);
-
-        return isset($settings[$key]) ? $settings[$key] : $default;
+        return $default;
     }
 
 
@@ -1007,8 +1024,219 @@ class Form
         $response['fields'] = $new_arr;
 
         $response['formulaData'] = json_decode($json_formula_string);
+        $response['nameIssues'] = $post ? $this->field_name_issues($post->ID) : self::empty_name_issues();
 
         return $response;
+    }
+
+    /**
+     * Whether PHP changes a field name in the request (ADM-007 in Free; same rule as Pro's ADM-002 check).
+     *
+     * PHP rewrites spaces and dots in posted names to "_" and reads "[" / "]" as array syntax, so a field named
+     * "Regel 1" arrives as $_POST['Regel_1']. Since ADM-007 the plugin still reads such a field (helper.php
+     * wcpa_request_lookup), but the request key differs from the name that custom code or another tool would look
+     * for, so the editor lists the name (DEC-127 Q3: a warning; Save is not refused). The editor applies the same
+     * rule (app/src/utils/fieldName.js); whitespace other than a space and a lone "]" are flagged too, as in Pro.
+     *
+     * | Name           | Flagged | Why                        |
+     * | -------------- | ------- | -------------------------- |
+     * | text_1a2b      | no      | editor default             |
+     * | voor_regel-1   | no      | letters, digits, _ and -   |
+     * | Regel 1        | yes     | space becomes "_"          |
+     * | tekst.achter   | yes     | dot becomes "_"            |
+     * | regel[1]       | yes     | read as an array           |
+     *
+     * @param mixed $name Stored field name.
+     * @return bool
+     */
+    public static function is_unsafe_field_name($name)
+    {
+        return is_string($name) && $name !== '' && preg_match('/[\s.\[\]]/u', $name) === 1;
+    }
+
+    /** The empty result of field_name_issues(). */
+    public static function empty_name_issues()
+    {
+        return ['unsafe' => [], 'duplicates' => [], 'shared' => [], 'count' => 0];
+    }
+
+    /**
+     * Named fields of a form (Free has no form-selector embeds).
+     *
+     * @param int $form_id
+     * @return array List of ['name', 'label', 'form_id'].
+     */
+    private function named_fields($form_id)
+    {
+        $list = [];
+        $json = $this->get_form_meta_data($form_id);
+        if (!$json || !is_object($json)) {
+            return $list;
+        }
+        foreach ($json as $section) {
+            if (!isset($section->fields) || !is_array($section->fields)) {
+                continue;
+            }
+            foreach ($section->fields as $row) {
+                foreach ((array)$row as $field) {
+                    if (is_object($field) && isset($field->name) && is_string($field->name) && $field->name !== '') {
+                        $list[] = [
+                            'name' => $field->name,
+                            'label' => isset($field->label) ? trim(wp_strip_all_tags((string)$field->label)) : '',
+                            'form_id' => (int)$form_id,
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $list;
+    }
+
+    /** @var array|null form ID => IDs of forms directly assigned to at least one same product (field_name_issues cache) */
+    private $coAssigned = null;
+
+    /** @var array form ID => unique field names of the form (field_name_issues cache) */
+    private $namesOf = [];
+
+    /** @var bool true while get_forms() fills its rows, so the rows share one set of caches */
+    private $nameIssuesBatch = false;
+
+    /**
+     * Forms directly assigned to at least one product together with $form_id.
+     *
+     * One query per Forms-list or editor load, whatever the number of products (as Pro, ADM-002 review of !81,
+     * DEC-039): the distinct stored assignment lists (`_wcpa_product_meta`, a serialized array of form IDs) of
+     * published and private products are read once and turned into a form => partners map.
+     *
+     * | Stored lists        | co_assigned_forms(3044) |
+     * | ------------------- | ----------------------- |
+     * | [3044], [3044]      | []                      |
+     * | [3044, 77], [3044]  | [77]                    |
+     * | [77, 88]            | []                      |
+     *
+     * @param int $form_id A base-language form ID (product meta stores base IDs).
+     * @return int[]
+     */
+    private function co_assigned_forms($form_id)
+    {
+        if ($this->coAssigned === null) {
+            global $wpdb;
+            $this->coAssigned = [];
+            $lists = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT pm.meta_value FROM {$wpdb->postmeta} pm
+                 INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+                 WHERE pm.meta_key = %s AND p.post_type = 'product' AND p.post_status IN ('publish', 'private')",
+                WCPA_PRODUCT_META_KEY
+            ));
+            foreach ((array)$lists as $list) {
+                $ids = array_values(array_unique(array_filter(array_map('intval', (array)maybe_unserialize($list)))));
+                foreach ($ids as $id) {
+                    foreach ($ids as $other) {
+                        if ($other !== $id) {
+                            $this->coAssigned[$id][$other] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return array_keys(isset($this->coAssigned[(int)$form_id]) ? $this->coAssigned[(int)$form_id] : []);
+    }
+
+    /** Unique field names of a form, read once per request (Forms list rows share partners). */
+    private function field_names_of($form_id)
+    {
+        if (!isset($this->namesOf[$form_id])) {
+            $this->namesOf[$form_id] = array_values(array_unique(array_map(function ($f) {
+                return $f['name'];
+            }, $this->named_fields($form_id))));
+        }
+
+        return $this->namesOf[$form_id];
+    }
+
+    /**
+     * Field names the editor and the Forms list point out (ADM-007 in Free, DEC-127 Q3: ADM-002 items 4 and 5, no
+     * Save refusal). Since ADM-007 the product page and the server keep every field's input under such names; the
+     * list helps the merchant keep names unique and plain for order data, custom code and other tools.
+     * - unsafe: a name PHP rewrites in the request (is_unsafe_field_name);
+     * - duplicates: one name on several fields of the form (forms saved before Free refused it, or imported);
+     * - shared: a name also used by another form that can be on the same product: assigned directly to one of the
+     *   same products, or to one of the same product categories (same language when WPML/Polylang is active).
+     * Nothing is changed or blocked here.
+     *
+     * | Form 12 fields       | Other form on a product of 12 | Result                                      |
+     * | -------------------- | ----------------------------- | ------------------------------------------- |
+     * | size, color          | (none)                        | count 0                                     |
+     * | Regel 1              | (none)                        | unsafe: Regel 1                             |
+     * | size, size (old)     | (none)                        | duplicates: size (2 fields)                 |
+     * | size                 | form 15 with size             | shared: size, form 15                       |
+     *
+     * @param int $form_id
+     * @return array ['unsafe' => [...], 'duplicates' => [...], 'shared' => [...], 'count' => int]
+     */
+    public function field_name_issues($form_id)
+    {
+        if (!$this->nameIssuesBatch) {
+            // A single call (editor load, tests) reads fresh data; get_forms() resets once for all rows.
+            $this->coAssigned = null;
+            $this->namesOf = [];
+        }
+        $issues = self::empty_name_issues();
+        $form_id = (int)$form_id;
+        if (!$form_id) {
+            return $issues;
+        }
+        $fields = $this->named_fields($form_id);
+        $title = function ($id) {
+            return html_entity_decode(get_the_title($id));
+        };
+
+        $byName = [];
+        foreach ($fields as $f) {
+            if (self::is_unsafe_field_name($f['name'])) {
+                $issues['unsafe'][] = $f + ['form_title' => $title($f['form_id'])];
+            }
+            $byName[$f['name']][] = $f;
+        }
+        foreach ($byName as $name => $list) {
+            if (count($list) > 1) {
+                $issues['duplicates'][] = ['name' => (string)$name, 'fields' => array_map(function ($f) use ($title) {
+                    return $f + ['form_title' => $title($f['form_id'])];
+                }, $list)];
+            }
+        }
+
+        // Other forms that can be on the same product: same directly assigned product or same category.
+        $partners = $this->co_assigned_forms($this->ml->is_active() ? $this->ml->base_form($form_id) : $form_id);
+        $terms = wp_get_post_terms($form_id, 'product_cat', ['fields' => 'ids']);
+        if (is_array($terms) && !empty($terms)) {
+            $partners = array_merge($partners, get_posts([
+                'post_type' => self::$CPT,
+                'post_status' => ['publish', 'draft'],
+                'posts_per_page' => -1,
+                'fields' => 'ids',
+                'suppress_filters' => false,
+                'tax_query' => [['taxonomy' => 'product_cat', 'field' => 'term_id', 'terms' => $terms, 'include_children' => false]],
+            ]));
+        }
+        $lang = $this->ml->is_active() ? $this->ml->get_post_language($form_id) : false;
+        $ownNames = array_map('strval', array_keys($byName));
+        foreach (array_unique(array_map('intval', array_filter($partners))) as $other) {
+            if ($other === $form_id || get_post_type($other) !== self::$CPT || !in_array(get_post_status($other), ['publish', 'draft'], true)) {
+                continue;
+            }
+            if ($lang !== false && $this->ml->get_post_language($other) !== $lang) {
+                continue;
+            }
+            foreach (array_intersect($ownNames, $this->field_names_of($other)) as $name) {
+                $issues['shared'][] = ['name' => $name, 'form_id' => $other, 'form_title' => $title($other), 'own' => true];
+            }
+        }
+        $issues['count'] = count($issues['unsafe']) + count($issues['duplicates']) + count($issues['shared']);
+
+        return $issues;
     }
 
     private function download_send_headers($filename)

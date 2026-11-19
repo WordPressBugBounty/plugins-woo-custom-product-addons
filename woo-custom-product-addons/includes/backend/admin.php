@@ -232,34 +232,40 @@ class Admin
 
                         return $this->redirectMl($post_id);
                     }
+
+                    // ML-008 AC-5: a new-form address opens a new form in the editor, as in Pro.
+                    return $this->redirectMl(0);
                 } else {
                     if (isset($_GET['post'])) {
                         $post_id = $_GET['post'];
                         $lang_code = $ml->current_language();
                         $this->redirectMl($post_id, $lang_code);
                     } elseif ($ml->is_duplicating()) {
-                        $from_post_id = $ml->from_post_id();
+                        /*
+                         * The multilingual plugin's "add translation" address (Polylang:
+                         * from_post + new_lang; WPML: trid + lang). ML-008: the translation is
+                         * made by Form::translate_form, the method behind the editor's "Add
+                         * translation" button (REST translate/{id}), so both plugins get the same
+                         * result: a published copy of the base form (fields, formula data) in the
+                         * base's group, or the existing translation in that language. Before, this
+                         * branch made an untitled empty draft with Polylang-only calls and read an
+                         * undefined constant (Error on PHP 8; on WPML pll_* is undefined on every
+                         * PHP version).
+                         */
+                        $from_post_id = (int)$ml->from_post_id();
                         $new_lang_code = $ml->get_new_language();
-                        // Create post object
-                        $my_post = array(
-                            'post_title' => '',
-                            'post_type' => Form::$CPT,
-                            'post_status' => 'draft',
-                        );
-// Insert the post into the database
-                        $new_post_id = wp_insert_post($my_post);
-                        $fb_json_value = $ml->default_fb_meta();
-                        update_post_meta($new_post_id, Form::$META_KEY_2, $fb_json_value);
-//                        pll_set_post_language($new_post_id, $lang_code);
-                        $fromPostCode = \pll_get_post_language($from_post_id, 'slug');
-
-                        $translations = \pll_get_post_translations($from_post_id);
-                        $translations[$new_lang_code] = $new_post_id;
-                        \pll_save_post_translations($translations);
-
-                        if ($from_post_id) {
-                            return $this->redirectMl($new_post_id, $new_lang_code);
+                        if (!$from_post_id || !$new_lang_code) {
+                            return;
                         }
+                        $result = (new Form())->translate_form($from_post_id, $new_lang_code);
+                        if (!empty($result['new_post_id'])) {
+                            return $this->redirectMl($result['new_post_id'], $new_lang_code);
+                        }
+                    } else {
+                        // ML-008 AC-5: a new-form address while the admin shows another language
+                        // opens a new form in the editor in that language, as in Pro (before: the
+                        // "menu has been changed" notice).
+                        return $this->redirectMl(0, $ml->current_language());
                     }
                 }
             }
@@ -276,6 +282,20 @@ class Admin
         }
     }
 
+    /**
+     * Sends an older WordPress form address (post.php / post-new.php of the form post type) to
+     * the form in the Product Addons editor, and ends the request.
+     *
+     * Why the exit (ML-008, confirmed on WordPress 7.1.3): `this_screen` runs on `current_screen`,
+     * before post.php / post-new.php check the post type. The form type has no WordPress screen
+     * (`show_ui` false), so without the exit WordPress went on and replaced the redirect with
+     * "Sorry, you are not allowed to edit posts in this post type." (403) or "Invalid post type."
+     * (500). Branches that fell through to the "menu has been changed" notice already ended with
+     * that notice's exit, so their redirect worked.
+     *
+     * @param int $post_id Form ID; 0 opens a new form.
+     * @param string|false $lang Language to open the editor in.
+     */
     function redirectMl($post_id, $lang = false)
     {
         if ($lang) {
@@ -285,6 +305,7 @@ class Admin
         }
         $url = admin_url($url);
         wp_redirect($url);
+        exit;
     }
 
     /**

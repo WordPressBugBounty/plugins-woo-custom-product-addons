@@ -119,6 +119,7 @@ class Autoloader {
 			'Form' => 'includes/form.php',
 			'Admin' => 'includes/backend/admin.php',
 			'Feedback' => 'includes/backend/feedback.php',
+			'Requirements' => 'includes/backend/requirements.php',
 
 			'BackendApi' => 'includes/backend/api.php',
 			'ML' => 'includes/compatibility/ml.php',

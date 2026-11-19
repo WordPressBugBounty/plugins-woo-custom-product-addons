@@ -516,21 +516,39 @@ class ML
         return $langs;
     }
 
+    /**
+     * Stored fields JSON of the base form of the translation being added through the
+     * multilingual plugin's "add translation" address (ML-008).
+     *
+     * The base form is the group's default-language form (WPML: `trid` in the request; Polylang:
+     * the default-language translation of `from_post`). The value is the form's stored
+     * `Form::$META_KEY_2`, the key `Form::translate_form` copies.
+     *
+     * Why: until 3.1.10 this read the constant `WCPA_FORM_META_KEY`, which no version defined
+     * (confirmed, `git log -S`): PHP 8 threw an Error, PHP 7 read a meta key named
+     * "WCPA_FORM_META_KEY" and returned "".
+     *
+     * | Active plugin | Request          | Returns                                            |
+     * | ------------- | ---------------- | -------------------------------------------------- |
+     * | WPML          | `trid`           | default-language member's JSON (else first member) |
+     * | Polylang      | `from_post`      | default-language translation's JSON                |
+     * | either        | argument missing | null                                               |
+     *
+     * @return string|null
+     */
     public function default_fb_meta()
     {
         $value = null;
-        if ($this->_active === 'wpml') {
+        if ($this->_active === 'wpml' && isset($_GET['trid'])) {
             $my_duplications = apply_filters('wpml_get_element_translations', null, $_GET['trid']);
             if (isset($my_duplications[$this->default_lang]->element_id)) {
-                $value = get_post_meta($my_duplications[$this->default_lang]->element_id, WCPA_FORM_META_KEY, true);
-            } elseif (is_array($my_duplications)) {
-                $value = get_post_meta(array_values($my_duplications)[0]->element_id, WCPA_FORM_META_KEY, true);
+                $value = get_post_meta($my_duplications[$this->default_lang]->element_id, Form::$META_KEY_2, true);
+            } elseif (is_array($my_duplications) && count($my_duplications)) {
+                $value = get_post_meta(array_values($my_duplications)[0]->element_id, Form::$META_KEY_2, true);
             }
-        } elseif ($this->_active === 'polylang') {
+        } elseif ($this->_active === 'polylang' && isset($_GET['from_post'])) {
             $base_form = $this->base_form($_GET['from_post']);
-            $value     = get_post_meta($base_form, WCPA_FORM_META_KEY, true);
-
-            return $value;
+            $value     = get_post_meta($base_form, Form::$META_KEY_2, true);
         }
 
         return $value;
@@ -541,9 +559,19 @@ class ML
         return $this->current_lang;
     }
 
+    /**
+     * Language of the translation being added through the "add translation" address.
+     *
+     * Polylang names it in `new_lang`. WPML names it in `lang`, from which it sets the admin's
+     * current language, so the current language is the new one (ML-008: before, WPML returned
+     * null here and the translation got no language).
+     *
+     * @return string|false|null
+     */
     public function get_new_language()
     {
         if ($this->_active === 'wpml') {
+            return $this->current_lang;
         } elseif ($this->_active === 'polylang') {
             if (isset($_GET['new_lang'])) {
                 return $_GET['new_lang'];

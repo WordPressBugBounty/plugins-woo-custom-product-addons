@@ -35,6 +35,8 @@ class Product
             $cacheKey = $cacheKey.'_'.$this->ml->current_language();
         }
         if (false !== ($data = $this->getCache($cacheKey))) {
+            /** ADM-007: also for prepared forms cached before the update (24 h transients without request names) */
+            $data['requestNames'] = wcpa_assign_request_names($data['fields']);
             return $data;
         }
 
@@ -174,12 +176,20 @@ class Product
             $totalFieldsCount =    $this->map_dependencies();
         }
 
+        /**
+         * ADM-007 (DEC-127): one request name per field, used by the page (input names) and by the server read
+         * (Process::setFields reads this same data), so a Field Name PHP rewrites or another field shares never
+         * loses the shopper's input. Stored names stay as they are. Rule: helper.php wcpa_assign_request_names().
+         */
+        $requestNames = wcpa_assign_request_names($this->data);
+
 
         $data = [
             'fields' => $this->data,
             'config' => $this->formConf,
             'scripts' => $scripts,
-            'fieldsCount' => $totalFieldsCount
+            'fieldsCount' => $totalFieldsCount,
+            'requestNames' => $requestNames
 
         ];
         $this->setCache($cacheKey, $data);

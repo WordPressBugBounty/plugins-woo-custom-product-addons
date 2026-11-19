@@ -148,6 +148,8 @@ class Main
             $front = new Front();
         }
         if (is_admin()) {
+            // DEV-008: the advance notice for sites below the next platform floor (admin screens only).
+            Requirements::register();
             $this->admin = new Admin($isWooActive);
         }
     }

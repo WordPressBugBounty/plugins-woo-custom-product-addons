@@ -155,6 +155,15 @@ class Render
                 ) . '
 			</div>
 			</div>';
+            /**
+             * ADM-007: tells the server this page posts request names (helper.php WCPA_REQUEST_NAMES_MARK). Only on
+             * products where a field has one (a Field Name PHP rewrites, or one shared with another field), so
+             * other pages stay byte-identical. Printed after the app's container, inside the cart form, so form
+             * posts and the ajax add to cart (FormData of the form) carry it.
+             */
+            if (!empty($data['requestNames'])) {
+                echo '<input type="hidden" name="' . esc_attr(WCPA_REQUEST_NAMES_MARK) . '" value="1" />';
+            }
         }
     }
 
@@ -189,14 +198,19 @@ class Render
         if (!isset($field->name)) {
             return;
         }
+        /**
+         * ADM-007: both reads find a field under its request name, its stored name or the key PHP made of it
+         * (helper.php wcpa_request_lookup()). A URL `?Regel 1=x` arrives as `$_GET['Regel_1']`; links carry stored
+         * names and never the page's marker, so the URL read is the stored-name-first lookup.
+         */
         if ($this->cartError && fieldFromName(
                 $field->name,
-                'isset'
+                'isset', false, $field
             )) { // if there is a validation error, it has persist the user entered values,
 
-            $default_value = fieldFromName($field->name, 'value');
-        } elseif ((isset($field->name)) && isset($_GET[$field->name])) { // using get if there is any value passed using url/get method
-            $default_value = $_GET[$field->name];
+            $default_value = fieldFromName($field->name, 'value', false, $field);
+        } elseif (($prefill = wcpa_request_lookup($_GET, $field, wcpa_request_marked($_GET))) && $prefill[0]) { // using get if there is any value passed using url/get method
+            $default_value = $prefill[1];
         } else {
             return;
         }

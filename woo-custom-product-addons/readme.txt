@@ -1,11 +1,11 @@
 === Product Addons for Woocommerce - Product Options with Custom Fields ===
 Contributors: acowebs
 Tags: WooCommerce Product Addons, WooCommerce product options, WooCommerce custom fields, WooCommerce product fields, WooCommerce custom price field
-Requires at least: 3.9
+Requires at least: 5.0
 Tested up to: 7.1
 Requires PHP: 7.2
 License: GPLv2 or later
-Stable tag: 3.1.10
+Stable tag: 3.1.11
 
 
 WooCommerce Product Addons Add custom fields to your WooCommerce product page. With an easy-to-use Custom Form Builder.
@@ -212,6 +212,13 @@ Yes, the Woocommerce custom fields allow file uploads,enabling customers to uplo
 To calculate the price with the Woocommerce product addons follow these simple steps in the [video](https://youtu.be/a1Ld-PbULNk?feature=shared) ( only available in pro version. get[WooCommerce custom product addons pro](https://acowebs.com/woo-custom-product-addons/) )
 
 == Changelog ==
+= 3.1.11 =
+* Fix - On a page with two Add to cart forms for one product (a desktop and a mobile form, quick view), the form the customer can see and filled in is the one added to the cart
+* Fix - An optional colour field the customer did not touch is read as the colour it submits, so conditions on it match the cart
+* Fix - A field whose Field Name has a space, a dot or a bracket, or shares its name with another field, keeps the customer's input; the form editor points out such names
+* Fix - WPML: opening a form's "add translation" link no longer causes a PHP 8 error
+* Fix - Deactivation feedback popup: no stray dot or second tick in the selected option
+* Improvement - Advance notice on the Plugins and Updates screens for stores below PHP 7.4, WordPress 5.9 or WooCommerce 7.0, which the next major version will need
 = 3.1.10 =
 * Security - Hardening of conditional logic evaluation
 * Feature - Optional feedback popup when you deactivate the plugin, and a one-time Acowebs newsletter card on the plugin's admin page; nothing is sent unless you click (see Privacy)

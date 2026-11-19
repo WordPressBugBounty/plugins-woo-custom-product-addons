@@ -122,7 +122,7 @@ class ReadForm
     {
 
         if ($values === false) {
-            $values = $this->fieldFromName($field->name);
+            $values = $this->fieldRequest($field);
         }
 
         $values_data = array();
@@ -180,6 +180,20 @@ class ReadForm
 
     }
 
+    /**
+     * Reads this field from the add-to-cart request under the key the page used: its request name on a page that
+     * posts request names, otherwise its stored name, then the key PHP made of it (ADM-007; order and reasons in
+     * helper.php wcpa_request_lookup()).
+     *
+     * @param object $field  Field with name, optional requestName and requestShared (wcpa_assign_request_names()).
+     * @param string $action 'value' or 'isset'.
+     * @return bool|mixed
+     */
+    public function fieldRequest($field, $action = 'value')
+    {
+        return fieldFromName($field->name, $action, false, $field);
+    }
+
     public function sanitize_values($value, $isMultiLine = false)
     {
 
@@ -208,7 +222,7 @@ class ReadForm
             if (isset($field->show_in_checkout) && $field->show_in_checkout == true) {
                 $fieldValue = (isset($field->value)) ? $field->value : '';
             }
-        } elseif ($this->fieldFromName($field->name, 'isset')) {
+        } elseif ($this->fieldRequest($field, 'isset')) {
             if (in_array($field->type, [
                 'select',
                 'radio-group',
@@ -234,7 +248,7 @@ class ReadForm
         $value = false
     ) {
         if ($value == false) {
-            $value = $this->fieldFromName($field->name);
+            $value = $this->fieldRequest($field);
         }
 
         $value = $this->sanitize_values($value);
@@ -263,7 +277,7 @@ class ReadForm
     function readTextFields(
         $field
     ) {
-        $value = $this->fieldFromName($field->name);
+        $value = $this->fieldRequest($field);
 
 
         $value = $this->sanitize_values($value,'textarea' == $field->type);

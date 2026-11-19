@@ -70,6 +70,25 @@
   box-shadow: inset 0 0 0 3.5px var(--acofb-surface);
 }
 
+/* wp-admin's forms.css draws its own mark in a ticked radio or checkbox's ::before: a dot
+   (input[type="radio"]:checked::before) and a Dashicons tick (input[type="checkbox"]:checked::before). Those
+   selectors (specificity 0,2,2) outrank the kit's reset (.acofb .acofb-radio::before, 0,2,1), so WordPress put a
+   second mark over the kit's: an off-centre white dot in the selected reason's radio and a second tick in the
+   contact box (owner's screenshot, 2026-11-17, WordPress 7.1). The ids make the reset win in every WordPress
+   version and whichever plugin's copy of the kit loads first. The card holds no radio or checkbox today; it is
+   covered so a later one cannot bring the same mark back. */
+#acofb-wcpa-deactivation .acofb-radio::before,
+#acofb-wcpa-deactivation .acofb-radio::after,
+#acofb-wcpa-deactivation .acofb-check::before,
+#acofb-wcpa-deactivation .acofb-check::after,
+#acofb-wcpa-newsletter .acofb-radio::before,
+#acofb-wcpa-newsletter .acofb-radio::after,
+#acofb-wcpa-newsletter .acofb-check::before,
+#acofb-wcpa-newsletter .acofb-check::after {
+  content: none;
+  display: none;
+}
+
 /* Ticked checkbox in Free's checkbox blue. */
 #acofb-wcpa-deactivation .acofb-check:checked {
   border-color: #0b56c5;
